@@ -1,0 +1,17 @@
+{
+  "name": "poe-nakladka",
+  "productName": "Nakladka PoE",
+  "version": "2.0.0",
+  "description": "Darmowa nakladka do Path of Exile 1: wycena, handel, mody map",
+  "main": "boot.js",
+  "scripts": {
+    "test": "node tests/parser.test.js && node tests/logic.test.js && node tests/v2.test.js",
+    "build": "electron-packager . NakladkaPoE --platform=win32 --arch=x64 --out=dist --overwrite --asar --ignore=^/tests --ignore=^/dist"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@electron/packager": "*",
+    "electron": "^33.4.11"
+  },
+  "updateRepo": "Kaie267/poe-nakladka"
+}

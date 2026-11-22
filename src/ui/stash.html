@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<link rel="stylesheet" href="base.css">
+<style>
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  #frame { position: absolute; outline: 1px dashed transparent; }
+  #frame.cal { outline-color: var(--gold); background: rgba(201,162,74,0.07); cursor: move; }
+  #frame.cal .grip { display: block; }
+  .grip { display: none; position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px; background: var(--gold); cursor: nwse-resize; }
+  .cell { position: absolute; display: flex; align-items: flex-end; justify-content: flex-end; padding: 1px 3px; font-family: 'PlexMono', monospace; font-size: 11px; line-height: 1; color: var(--text); text-shadow: 0 0 3px #000, 0 0 2px #000; pointer-events: none; }
+  .cell.sell { box-shadow: inset 0 0 0 1px var(--gold); }
+  .cell.cheap { box-shadow: inset 0 0 0 2px var(--bad); }
+  .cell.low { color: var(--faint); }
+  #bar { position: absolute; display: flex; gap: 8px; align-items: center; background: rgba(21,20,15,0.95); border: 1px solid var(--rule); padding: 5px 8px; font-size: 12px; white-space: nowrap; }
+  #bar select { max-width: 170px; padding: 2px 4px; }
+  #bar button { padding: 2px 7px; font-size: 12px; }
+  #bar .v { font-family: 'PlexMono', monospace; color: var(--gold); }
+  #bar .m { color: var(--muted); }
+  #msg { position: absolute; background: rgba(21,20,15,0.95); border: 1px solid var(--rule); padding: 8px 10px; font-size: 12px; color: var(--muted); max-width: 420px; }
+</style>
+</head>
+<body>
+<div id="frame"><div class="grip" id="grip"></div></div>
+<div id="bar"></div>
+<div id="msg" hidden></div>
+<script src="stash.js"></script>
+</body>
+</html>

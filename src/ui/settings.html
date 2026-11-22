@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Nakładka PoE</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<link rel="stylesheet" href="base.css">
+<style>
+  html, body { background: var(--bg); user-select: text; height: 100%; }
+  .wrap { display: grid; grid-template-columns: 150px 1fr; height: 100%; }
+  nav { border-right: 1px solid var(--rule); padding: 22px 0; display: flex; flex-direction: column; }
+  nav .brand { padding: 0 16px 16px; font-weight: 600; font-size: 17px; letter-spacing: -0.02em; line-height: 1.1; }
+  nav .brand small { display: block; color: var(--faint); font-weight: 400; font-size: 11px; font-family: 'PlexMono', monospace; margin-top: 3px; }
+  nav a { color: var(--muted); padding: 6px 16px; border-left: 2px solid transparent; }
+  nav a:hover { text-decoration: none; color: var(--text); }
+  nav a.on { color: var(--text); border-left-color: var(--gold); background: #1d1b15; }
+  main { padding: 22px 28px 0; overflow-y: auto; }
+  section { display: none; padding-bottom: 80px; }
+  section.on { display: block; }
+  h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; margin: 0 0 4px; line-height: 1; }
+  .lead { color: var(--muted); margin: 0 0 16px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin: 20px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--rule); font-weight: 600; }
+  .row { display: grid; grid-template-columns: 190px 1fr; gap: 10px; align-items: center; margin: 7px 0; }
+  .row > span:first-child { color: var(--muted); }
+  .row input[type=checkbox] { justify-self: start; }
+  .hint { color: var(--faint); font-size: 12px; margin: -2px 0 6px 200px; }
+  .inline { display: flex; gap: 6px; } .inline input { flex: 1; }
+  textarea { width: 100%; min-height: 90px; resize: vertical; font-family: 'PlexMono', monospace; font-size: 12px; }
+  kbd { font-family: 'PlexMono', monospace; font-size: 12px; border: 1px solid var(--rule); padding: 0 4px; border-radius: 2px; }
+  .save { position: fixed; bottom: 0; left: 150px; right: 0; background: var(--bg); border-top: 1px solid var(--rule); padding: 10px 28px; display: flex; gap: 12px; align-items: center; }
+  #saved { color: var(--sell); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: var(--faint); font-weight: 400; padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule); }
+  td { padding: 4px 6px 4px 0; border-bottom: 1px solid #25221b; }
+  td.n { font-family: 'PlexMono', monospace; text-align: right; white-space: nowrap; }
+  .big { font-family: 'PlexMono', monospace; font-size: 28px; font-weight: 500; letter-spacing: -0.03em; }
+  .stat { display: flex; gap: 32px; margin: 8px 0 14px; }
+  .stat div span { display: block; color: var(--muted); font-size: 12px; }
+  .ok { color: var(--sell); } .err { color: var(--bad); }
+  .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav id="nav">
+    <div class="brand">Nakładka PoE<small id="ver"></small></div>
+    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a>
+    <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
+  </nav>
+  <main>
+    <section id="ogolne">
+      <h1>Ogólne</h1>
+      <p class="lead">Najedź na przedmiot w grze i wciśnij <kbd class="k-priceCheck">Ctrl+D</kbd>. Gra musi działać w trybie <i>Windowed Fullscreen</i>.</p>
+      <h2>Liga i ceny</h2>
+      <div class="row"><span>Liga</span><select id="league"></select></div>
+      <div class="row"><span>Próg sprzedaży (chaos)</span><input id="vendorThreshold" type="number" min="0" step="0.5"></div>
+      <div class="hint">Wszystko poniżej tej wartości dostaje werdykt „WENDOR”.</div>
+      <div class="row"><span>Oferty na trade</span>
+        <select id="tradeStatus"><option value="online">gracze online</option><option value="securable">tylko instant buyout</option><option value="any">wszystkie</option></select></div>
+      <div class="row"><span>Minimum modów (% wartości)</span><input id="modMinPercent" type="number" min="50" max="100"></div>
+      <div class="row"><span>Rare'y: szukaj od razu</span><input id="autoTradeRares" type="checkbox"></div>
+      <div class="row"><span>Przywracaj schowek</span><input id="restoreClipboard" type="checkbox"></div>
+      <div class="row"><span>Pasek u góry ekranu</span><input id="hudVisible" type="checkbox"></div>
+      <div class="hint">Statystyki map i tryb liczenia.</div>
+      <h2>Dostęp do strony trade</h2>
+      <div class="row"><span>POESESSID (opcjonalnie)</span><input id="poesessid" type="password" placeholder="tylko gdy trade odrzuca zapytania"></div>
+      <div class="hint">Zamiast tego możesz <a id="login">zalogować się w oknie Market</a> — nakładka użyje tej sesji.</div>
+    </section>
+
+    <section id="skroty">
+      <h1>Skróty</h1>
+      <p class="lead">Format jak „Ctrl+D”, „Ctrl+Shift+F”, „F5”. Skróty działają tylko, gdy aktywne jest okno gry.</p>
+      <div class="row"><span>Wycena</span><input data-hk="priceCheck"></div>
+      <div class="row"><span>Wycena z tierami modów</span><input data-hk="priceCheckAdvanced"></div>
+      <div class="row"><span>Tryb liczenia</span><input data-hk="counting"></div>
+      <div class="row"><span>Stash — wartość</span><input data-hk="stash"></div>
+      <div class="row"><span>Market (strona trade)</span><input data-hk="market"></div>
+      <div class="row"><span>Poradnik: pokaż/ukryj</span><input data-hk="guide"></div>
+      <div class="row"><span>Poradnik: następny krok</span><input data-hk="guideNext"></div>
+      <div class="row"><span>Poradnik: poprzedni krok</span><input data-hk="guidePrev"></div>
+      <div class="row"><span>poe-leveling.com</span><input data-hk="leveling"></div>
+      <div class="row"><span>Ściągi</span><input data-hk="sheets"></div>
+      <div class="row"><span>Wiki przedmiotu</span><input data-hk="wiki"></div>
+      <div class="row"><span>Ustawienia</span><input data-hk="settings"></div>
+      <h2>Komendy na klawisz</h2>
+      <textarea id="commands" style="min-height:70px"></textarea>
+      <div class="hint" style="margin-left:0">Jedna na linię: <kbd>F5 = /hideout</kbd>. Każde wciśnięcie wysyła jedną komendę na czat.</div>
+    </section>
+
+    <section id="handel">
+      <h1>Handel</h1>
+      <p class="lead">Okienko z szeptami kupujących pojawia się po prawej stronie ekranu.</p>
+      <div class="row"><span>Client.txt</span><div class="inline"><input id="clientLog"><button id="detect">Znajdź</button><button id="pick">Wskaż…</button></div></div>
+      <div class="hint">Z tego pliku nakładka czyta szepty, wejścia do stref i zakończone handle. Leży w folderze gry, w podfolderze <i>logs</i>.</div>
+      <div class="row"><span>Wiadomość „dzięki”</span><input id="thanksMessage"></div>
+      <div class="row"><span>Wiadomość „chwila”</span><input id="busyMessage"></div>
+      <div class="row"><span>Dźwięk: kupujący u ciebie</span><input id="buyerSound" type="checkbox"></div>
+      <h2>Historia handlu</h2>
+      <div id="history"></div>
+    </section>
+
+    <section id="stash">
+      <h1>Stash</h1>
+      <p class="lead">Wartość przedmiotów wystawionych na sprzedaż (zakładki Merchant i publiczne). Prywatnych zakładek GGG nie udostępnia narzędziom bez oficjalnego dostępu.</p>
+      <div class="row"><span>Nazwa konta</span><input id="account" placeholder="np. Kaie267#1234"></div>
+      <div class="hint">Tak jak na stronie trade — z numerem po #, jeśli go masz.</div>
+      <div id="stashSummary"></div>
+      <p><button id="stashRefresh">Odśwież wartość</button> <span class="hint" style="margin:0">W grze: <kbd class="k-stash"></kbd> pokazuje ceny na siatce stasha.</span></p>
+    </section>
+
+    <section id="poradnik">
+      <h1>Poradnik kampanii</h1>
+      <p class="lead">Sam przechodzi do następnego kroku, gdy wchodzisz do nowej strefy. Trasa: exile-leveling (licencja MIT).</p>
+      <div class="row"><span>Klasa</span><select id="guideClass"><option>Marauder</option><option>Ranger</option><option>Witch</option><option>Duelist</option><option>Templar</option><option>Shadow</option><option>Scion</option></select></div>
+      <div class="row"><span>Trasa na start ligi</span><input id="guideLeagueStart" type="checkbox"></div>
+      <div class="hint">Wariant z dodatkowymi krokami opłacalnymi przy pierwszej postaci w lidze.</div>
+      <div class="row"><span>Krok</span><div class="inline"><button id="guideReset">Zacznij od początku</button></div></div>
+      <h2>Build z Path of Building</h2>
+      <textarea id="pob" placeholder="Wklej kod PoB (Export > Generate > Copy)"></textarea>
+      <p><button id="pobImport">Wczytaj build</button> <span id="pobInfo" class="hint" style="margin:0"></span></p>
+      <div class="hint" style="margin-left:0">Poradnik pokaże wtedy tylko gemy z twojego buildu: którą nagrodę wziąć i co kupić u NPC.</div>
+    </section>
+
+    <section id="mapy">
+      <h1>Mapy</h1>
+      <p class="lead">Statystyki z bieżącej sesji (od startu nakładki albo resetu). Widać je też na pasku u góry ekranu.</p>
+      <div class="stat" id="mapStats"></div>
+      <p><button id="sessReset">Nowa sesja</button></p>
+      <h2>Groźne mody map</h2>
+      <textarea id="mapDanger"></textarea>
+      <div class="hint" style="margin-left:0">Fragment tekstu modu, jeden na linię. Pasujące mody nakładka podświetli na czerwono.</div>
+    </section>
+
+    <section id="aktualizacje">
+      <h1>Aktualizacje</h1>
+      <p class="lead">Nowe wersje pobierają się same w tle (ok. 300 KB). Włączają się po ponownym uruchomieniu nakładki.</p>
+      <div id="upd"></div>
+      <p><button id="updCheck">Sprawdź teraz</button> <button id="updRestart" class="primary" hidden>Uruchom ponownie</button></p>
+    </section>
+  </main>
+</div>
+<div class="save"><button class="primary" id="save">Zapisz</button><span id="saved"></span></div>
+<script src="settings.js"></script>
+</body>
+</html>
