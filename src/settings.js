@@ -40,6 +40,8 @@ const DEFAULTS = {
   buildItems: {},            // noszone przedmioty z PoB (slot -> {name, base, mods})
   buildRes: null,            // odporności postaci z PoB
   listUndercut: 5,
+  autoCopyNote: true,        // po wycenie notka ~price od razu w schowku
+  watchAlertPct: 20,         // alert, gdy obserwowany przedmiot zmieni cenę o tyle %
   liveSearches: [],          // [{id, name, url, on}]
   labAuto: true,
   uiScale: 1,

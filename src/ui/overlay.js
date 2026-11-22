@@ -191,8 +191,10 @@ function listBlock() {
   else if (total >= 1) { amount = Math.round(total * 10) / 10; cur = 'chaos'; }
   else { amount = Math.max(0.01, Math.round(total * 100) / 100); cur = 'chaos'; }
   const note = `~price ${amount} ${cur}`;
+  // Notka od razu w schowku (raz na przedmiot) — w grze wystarczy prawy klik i Ctrl+V.
+  if (S.autoCopy && S.copiedFor !== S.item.raw && !S.ninjaLoading) { S.copiedFor = S.item.raw; S.autoCopied = true; setTimeout(() => api.copy(note), 300); }
   return `<section class="list"><h3>Wystaw <span>${S.undercut ?? 5}% poniżej rynku${it.stack > 1 ? ', za cały stack' : ''}</span></h3>
-    <div class="lrow"><b class="num">${fmt(amount)} ${icon(cur)}</b><code>${esc(note)}</code><button id="copyNote" data-note="${esc(note)}">Kopiuj</button></div></section>`;
+    <div class="lrow"><b class="num">${fmt(amount)} ${icon(cur)}</b><code>${esc(note)}</code><button id="copyNote" data-note="${esc(note)}">${S.autoCopied ? 'W schowku ✓' : 'Kopiuj'}</button></div></section>`;
 }
 
 function filtersBlock() {

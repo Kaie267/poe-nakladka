@@ -3,8 +3,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-const FIELDS = ['listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
+const FIELDS = ['watchAlertPct', 'listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
+const CHECKS = ['autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));
@@ -44,7 +44,7 @@ $('save').onclick = async () => {
     .map(([k, ...x]) => ({ key: k.trim(), text: x.join('=').trim() }));
   const patch = { league: $('league').value, hotkeys, commands, mapDanger: $('mapDanger').value.split('\n').map(s => s.trim()).filter(Boolean) };
   for (const k of FIELDS) patch[k] = $(k).value.trim();
-  for (const k of ['vendorThreshold', 'modMinPercent', 'listUndercut']) patch[k] = Number(patch[k]) || 0;
+  for (const k of ['vendorThreshold', 'modMinPercent', 'listUndercut', 'watchAlertPct']) patch[k] = Number(patch[k]) || 0;
   patch.uiScale = Number(patch.uiScale) || 1; patch.uiOpacity = Number(patch.uiOpacity) || 1;
   for (const k of CHECKS) patch[k] = $(k).checked;
   patch.buildProfile = { type: $('bpType').value, defense: $('bpDef').value, element: $('bpEl').value };

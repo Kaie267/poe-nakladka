@@ -23,6 +23,13 @@ api.on('log', ev => {
   render();
 });
 
+api.on('alert', a => {
+  cards.unshift({ id: ++seq, kind: 'alert', name: a.name, alert: a, at: Date.now() });
+  cards = cards.slice(0, 8);
+  beep();
+  render();
+});
+
 api.on('live', l => {
   cards.unshift({ id: ++seq, kind: 'live', name: l.account || '', live: l, at: Date.now() });
   cards = cards.slice(0, 8);
@@ -42,10 +49,16 @@ const ACTIONS = {
   buy: [['Do niego', c => `/hideout ${c.name}`], ['Handel', c => `/tradewith ${c.name}`], ['Dzięki', c => `@${c.name} ${cfg.thanksMessage}`], ['Wróć', () => '/hideout']],
   plain: [['Zaproś', c => `/invite ${c.name}`], ['Odpisz: chwila', c => `@${c.name} ${cfg.busyMessage}`]],
   live: [],
+  alert: [],
 };
 
 function render() {
   list.innerHTML = cards.map(c => {
+    if (c.kind === 'alert') {
+      const a = c.alert, f = n => n >= 100 ? Math.round(n) : n >= 1 ? n.toFixed(1) : n.toFixed(3);
+      return `<div class="c ${a.diff < 0 ? 'buy' : 'live'}" data-card="${c.id}"><div class="top"><span class="what">${esc(a.name)}</span><span class="price">${a.diff > 0 ? '+' : ''}${a.diff}%</span></div>
+        <div class="who">Obserwowane: ${f(a.before)} c → ${f(a.now)} c</div><div class="btns"><button class="x" data-x="${c.id}">×</button></div></div>`;
+    }
     if (c.kind === 'live') {
       const l = c.live;
       const price = l.amount ? `${esc(l.amount)} ${esc(l.currency)}` : '';

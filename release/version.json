@@ -1,1 +1,1 @@
-{ "version": "2.7.0", "size": 569590, "minBase": "2.0.0", "notes": "Usunięte stare okno ze stroną poe-leveling — wszędzie otwiera się nakładka-poradnik. Nowa zakładka Doradca craftu (wklej przedmiot, dostaniesz plan). Diagnostyka błędów w zakładce Aktualizacje." }
+{ "version": "2.8.0", "size": 572039, "minBase": "2.0.0", "notes": "Po Ctrl+D notka ~price od razu w schowku (w grze: prawy klik i Ctrl+V). Alerty cen obserwowanych przedmiotów (domyślnie zmiana o 20%)." }

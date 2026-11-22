@@ -188,7 +188,7 @@ async function priceCheck(advanced) {
   const goodBase = isGearItem && item.rarity !== 'Unique' && item.ilvl >= 84 && (item.influences.length || item.fractured || item.synthesised || item.ilvl >= 86)
     ? [item.ilvl ? `ilvl ${item.ilvl}` : null, ...item.influences, item.fractured ? 'fractured' : null, item.synthesised ? 'synthesised' : null].filter(Boolean) : null;
   send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, mapGoal: s.mapGoal, counting: counting.on, tradeStatus: s.tradeStatus,
-    league: s.league, watched, explained, profile: s.buildProfile, buildName: s.buildName, compare, gaps, goodBase, undercut: s.listUndercut ?? 5 });
+    league: s.league, watched, explained, profile: s.buildProfile, buildName: s.buildName, compare, gaps, goodBase, undercut: s.listUndercut ?? 5, autoCopy: s.autoCopyNote !== false });
   runPricing(item).catch(e => send('overlay', 'ninja', { error: e.message }));
 }
 
@@ -280,6 +280,29 @@ async function refreshStash() {
     send('stash', 'stash', { data: stashData, divine, icons });
     send('settings', 'stash', { data: stashData, history: stashHistory, divine });
   } catch (e) { send('stash', 'stash', { error: e.message }); send('settings', 'stash', { error: e.message }); }
+}
+
+// Alerty cen obserwowanych przedmiotów.
+async function checkWatchAlerts() {
+  const s = settings.get();
+  const list = s.watch || [];
+  if (!list.length) return;
+  ninja.setLeague(s.league);
+  const pct = Number(s.watchAlertPct) || 20;
+  let changed = false;
+  for (const w of list) {
+    let r = null;
+    try { r = await ninja.priceItem({ ...w, mods: [], stack: 1 }); } catch { continue; }
+    const now = r && r.price && r.price.chaos;
+    if (now == null) continue;
+    if (w.alertBase == null) { w.alertBase = now; changed = true; continue; }
+    const diff = (now - w.alertBase) / w.alertBase * 100;
+    if (Math.abs(diff) >= pct) {
+      send('notify', 'alert', { name: w.name, before: w.alertBase, now, diff: Math.round(diff) });
+      w.alertBase = now; changed = true;
+    }
+  }
+  if (changed) settings.quiet({ watch: list });
 }
 
 let stashTimer = null;
@@ -583,6 +606,8 @@ app.whenReady().then(async () => {
   if (settings.get().clientLog) logw.start(settings.get().clientLog);
   try { stashHistory = JSON.parse(fs.readFileSync(histFile(), 'utf8')); } catch { stashHistory = []; }
   scheduleStash();
+  setInterval(() => checkWatchAlerts().catch(e => logErr('alerty', e)), 15 * 60 * 1000);
+  setTimeout(() => checkWatchAlerts().catch(() => {}), 60 * 1000);
   connectLive();
   charLevel = settings.get().charLevel || null; lastArea = settings.get().lastArea || null;
   if (settings.get().guideVisible && guideIsPL()) togglePL(true);
