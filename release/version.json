@@ -1,1 +1,1 @@
-{ "version": "3.1.0", "size": 593131, "minBase": "2.0.0", "notes": "Kompaktowa wycena (Ctrl+Shift+D albo zawsze — opcja w Ogólne). Ceny Threadów z poe.ninja: w wycenie, loot filtrze i Doradcy map." }
+{ "version": "3.1.1", "size": 594166, "minBase": "2.0.0", "notes": "Poradnik: wybór aktu z listy w pasku i automatyczne odnajdywanie kroku w całej trasie po wejściu do strefy." }

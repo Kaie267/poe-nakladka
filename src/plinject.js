@@ -12,6 +12,7 @@ body.pl-on #__nuxt { display: none !important; }
 #pl-bar .lv { font: 600 11px Consolas, monospace; padding: 0 5px; border-radius: 2px; color: #13120e; flex: none; }
 #pl-bar .lv.low { background: #d9694f; } #pl-bar .lv.ok { background: #8fbf6a; } #pl-bar .lv.high { background: #c9a24a; }
 #pl-bar .g { flex: 1; }
+#pl-bar select { -webkit-app-region: no-drag; background: #2a271f; color: #e9e4d6; border: 1px solid #3a352a; border-radius: 3px; font: 11px 'Segoe UI', sans-serif; padding: 0 2px; height: 20px; max-width: 74px; cursor: pointer; }
 #pl-bar button { -webkit-app-region: no-drag; background: none; color: #9b9482; border: none; font: 14px 'Segoe UI', sans-serif; padding: 0 5px; cursor: pointer; flex: none; line-height: 1; }
 #pl-bar button:hover { color: #e9e4d6; }
 #pl-bar .n { color: #6c6656; font: 400 11px 'Segoe UI', sans-serif; white-space: nowrap; }
@@ -53,7 +54,7 @@ const JS = `(() => {
   function ui() {
     const bar = document.createElement('div');
     bar.id = 'pl-bar';
-    bar.innerHTML = '<span class="z" id="pl-z">Poradnik</span><span class="lv" id="pl-lv" hidden></span><span class="n" id="pl-n"></span><span class="g"></span>' +
+    bar.innerHTML = '<span class="z" id="pl-z">Poradnik</span><span class="lv" id="pl-lv" hidden></span><span class="n" id="pl-n"></span><span class="g"></span><select id="pl-act" title="Przejdź do aktu"></select>' +
       '<button id="pl-prev" title="Poprzedni krok (Ctrl+Alt+←)">‹</button><button id="pl-next" title="Następny krok (Ctrl+Alt+→)">›</button>' +
       '<button id="pl-mode" title="Cały akt">☰</button><button id="pl-tips" title="Porady do aktu">i</button><button id="pl-x" title="Ukryj (Ctrl+Shift+L)">×</button>';
     const sub = document.createElement('div'); sub.id = 'pl-sub';
@@ -65,6 +66,9 @@ const JS = `(() => {
     document.getElementById('pl-mode').onclick = () => { S.compact = !S.compact; localStorage.setItem('pl-compact', S.compact ? '1' : '0'); render(); };
     document.getElementById('pl-tips').onclick = () => { S.tips = !S.tips; localStorage.setItem('pl-tips', S.tips ? '1' : '0'); render(); };
     document.getElementById('pl-x').onclick = () => console.log('PL|hide');
+    const sel = document.getElementById('pl-act');
+    sel.innerHTML = S.acts.map((a, i) => '<option value="' + i + '">' + a.title.replace(/^act/i, 'Akt') + '</option>').join('');
+    sel.onchange = () => { const k = S.steps.findIndex(st => st.act === +sel.value); if (k >= 0) { S.cur = k; render(); } };
     view.addEventListener('click', e => { const st = e.target.closest('.st'); if (st) { S.cur = +st.dataset.i; render(); } });
   }
 
@@ -77,7 +81,8 @@ const JS = `(() => {
     const inAct = L.map((s, i) => [s, i]).filter(([s]) => s.act === cur.act);
     const pos = inAct.findIndex(([, i]) => i === S.cur) + 1;
     document.getElementById('pl-sub').innerHTML = '';
-    document.getElementById('pl-n').textContent = act.title + ' · ' + pos + '/' + inAct.length;
+    document.getElementById('pl-n').textContent = pos + '/' + inAct.length;
+    const sel = document.getElementById('pl-act'); if (sel && +sel.value !== cur.act) sel.value = String(cur.act);
     let html = '';
     if (S.tips && act.tips.length) html += '<ul class="tips">' + act.tips.map(t => '<li>' + t + '</li>').join('') + '</ul>';
     if (S.compact) {
@@ -104,9 +109,15 @@ const JS = `(() => {
     if (lv && lv.diff != null) { b.hidden = false; b.textContent = (lv.diff > 0 ? '+' : '') + lv.diff; b.className = 'lv ' + (lv.diff < -2 ? 'low' : lv.diff > 3 ? 'high' : 'ok'); b.title = 'Twój poziom ' + lv.char + ', strefa ' + lv.area; } else b.hidden = true;
     const z = norm(area), L = S.steps;
     // najpierw krok zaczynający się od tej strefy, potem krok, który do niej prowadzi
-    for (const pass of [0, 1]) for (let i = S.cur; i < Math.min(L.length, S.cur + 15); i++) {
-      const t = L[i].text;
-      if (pass === 0 ? t.startsWith(z) : t.includes(z)) { if (i !== S.cur || pass === 0) { S.cur = i; render(); } return; }
+    // Szukamy najpierw blisko bieżącego kroku, potem dalej do przodu, a na końcu od początku trasy
+    // (np. gdy grasz od razu Akt 5 albo nowa postać zaczyna kampanię).
+    const ranges = [[S.cur, Math.min(L.length, S.cur + 15)], [S.cur + 15, L.length], [0, S.cur]];
+    for (let r = 0; r < ranges.length; r++) {
+      const [a, b] = ranges[r];
+      for (const pass of r === 0 ? [0, 1] : [0]) for (let i = a; i < b; i++) {
+        const t = L[i].text;
+        if (pass === 0 ? t.startsWith(z) : t.includes(z)) { if (i !== S.cur || pass === 0) { S.cur = i; render(); } return; }
+      }
     }
   };
 
