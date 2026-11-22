@@ -113,7 +113,7 @@ function parseItem(text) {
         if (/^".*"$/.test(l)) continue;
         if (/^[A-Z][A-Za-z ']+:\s/.test(l) && !/\((implicit|enchant|crafted)\)$/.test(l)) continue;
         const pm = parseModLine(l);
-        if (hdr) { pm.tier = hdr.tier; pm.affix = hdr.affix; }
+        if (hdr) { pm.tier = hdr.tier; pm.affix = hdr.affix; hdr = null; }
         item.mods.push(pm);
       }
     }

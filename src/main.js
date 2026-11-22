@@ -15,6 +15,7 @@ const { decodePob } = require('./pob');
 const { explainMods } = require('./modexplain');
 const { compareItem, resGaps } = require('./compare');
 const PL = require('./plinject');
+const { advise } = require('./craftadvice');
 
 const PKG = require('../package.json');
 const VERSION = (global.__nakladka && global.__nakladka.version) || PKG.version;
@@ -23,6 +24,16 @@ const UI = f => path.join(__dirname, 'ui', f);
 const PRELOAD = path.join(__dirname, 'preload.js');
 
 if (!app.requestSingleInstanceLock()) app.quit();
+
+// Dziennik błędów — widoczny w zakładce Aktualizacje (łatwiej zgłosić problem).
+const errLog = [];
+function logErr(where, e) {
+  const line = `${new Date().toLocaleString('pl-PL')} [${where}] ${(e && (e.stack || e.message)) || e}`;
+  errLog.unshift(line.slice(0, 1200)); errLog.length = Math.min(errLog.length, 50);
+  try { fs.appendFileSync(path.join(app.getPath('userData'), 'bledy.log'), line + '\n'); } catch { /* */ }
+}
+process.on('uncaughtException', e => logErr('main', e));
+process.on('unhandledRejection', e => logErr('promise', e));
 
 let settings, keys, ninja, trade, logw, tray, updater, sess, guideData;
 const W = {}; // okna
@@ -125,10 +136,7 @@ function toggleWebWindow(key, url, opts = {}) {
 
 const marketUrl = () => `https://www.pathofexile.com/trade/search/${encodeURIComponent(settings.get().league)}`;
 function toggleMarket(url) { toggleWebWindow('market', marketUrl(), { title: 'Market — pathofexile.com/trade', forceUrl: url }); }
-function toggleLeveling() {
-  const wa = screen.getPrimaryDisplay().workArea;
-  toggleWebWindow('leveling', 'https://poe-leveling.com/', { title: 'poe-leveling.com', width: 520, height: Math.min(900, wa.height - 100), x: wa.x + wa.width - 540, y: wa.y + 60 });
-}
+function toggleLeveling() { togglePL(); }
 
 function toggleSheets() {
   if (W.sheets && !W.sheets.isDestroyed()) { if (W.sheets.isVisible()) W.sheets.hide(); else { W.sheets.show(); W.sheets.focus(); } return; }
@@ -312,6 +320,8 @@ function createPL() {
   const b = settings.get().plBounds || { width: 380, height: 160, x: wa.x + wa.width - 400, y: wa.y + 40 };
   W.pl = onTop(new BrowserWindow({ ...b, frame: false, transparent: true, hasShadow: false, skipTaskbar: true, show: false, resizable: true, minWidth: 260, minHeight: 80, backgroundColor: '#00000000', alwaysOnTop: true,
     webPreferences: { partition: 'persist:leveling', contextIsolation: true } }));
+  W.pl.webContents.on('did-fail-load', (_e, code, desc) => logErr('poe-leveling', `${code} ${desc}`));
+  W.pl.webContents.on('render-process-gone', (_e, d) => logErr('poe-leveling', d.reason));
   W.pl.webContents.on('did-finish-load', () => {
     W.pl.webContents.insertCSS(PL.CSS).catch(() => {});
     W.pl.webContents.executeJavaScript(PL.JS).then(() => setTimeout(plZone, 800)).catch(() => {});
@@ -504,7 +514,6 @@ function makeTray() {
     { label: 'Ustawienia', click: () => openSettings() },
     { label: 'Market (strona trade)', click: () => toggleMarket() },
     { label: 'Poradnik kampanii', click: toggleActiveGuide },
-    { label: 'poe-leveling.com', click: toggleLeveling },
     { label: 'Stash — wartość', click: toggleStash },
     { label: 'Ściągi', click: toggleSheets },
     { label: 'Labirynt dnia', click: () => toggleLab() },
@@ -705,6 +714,8 @@ ipcMain.handle('update:status', () => updater.status);
 ipcMain.handle('update:check', () => updater.check());
 ipcMain.handle('update:restart', () => restart());
 ipcMain.handle('version', () => VERSION);
+ipcMain.handle('errors', () => errLog);
+ipcMain.handle('craft:advise', (_e, text) => { try { return advise(text, settings.get().buildProfile || {}); } catch (e) { logErr('craft', e); return { error: e.message }; } });
 ipcMain.handle('sheets:list', () => {
   const dir = path.join(app.getPath('userData'), 'sciagi');
   fs.mkdirSync(dir, { recursive: true });

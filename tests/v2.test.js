@@ -91,3 +91,16 @@ const guide = require('../src/data/guide.json');
   assert.equal(ex[1].verdict, 'bad'); // życie przy buildzie ES
   console.log('compare: OK');
 })();
+
+(() => {
+  const assert = require('assert');
+  const { advise } = require('../src/craftadvice');
+  const S = require('./samples');
+  const r = advise(S.advanced, { type: 'spell', defense: 'life' });
+  assert.equal(r.summary.exact, true);
+  assert.ok(r.steps.length >= 1);
+  assert.equal(advise(S.ring, {}).steps[0].t, 'Przedmiot jest skorumpowany');
+  const white = advise('Item Class: Boots\nRarity: Normal\nTwo-Toned Boots\n--------\nItem Level: 86', {});
+  assert.ok(white.steps[0].t.startsWith('1.'));
+  console.log('craft advice: OK');
+})();

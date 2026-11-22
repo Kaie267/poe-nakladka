@@ -345,6 +345,8 @@ async function loadUpdate() {
   }[s.state] || '';
   $('upd').innerHTML = `<p>Wersja <b class="num">${esc(s.version)}</b>. ${esc(txt)}</p>${s.notes ? `<pre style="white-space:pre-wrap;color:var(--muted)">${esc(s.notes)}</pre>` : ''}`;
   $('updRestart').hidden = s.state !== 'ready';
+  const errs = await api.errors();
+  $('errs').innerHTML = errs.length ? `<pre style="white-space:pre-wrap;font-size:11px;max-height:200px;overflow:auto">${esc(errs.join('\n'))}</pre><p class="muted">Jeśli coś nie działa, zrób zrzut tej listy i wyślij.</p>` : 'Brak błędów.';
 }
 $('updCheck').onclick = async () => { $('upd').textContent = 'Sprawdzam…'; await api.updateCheck(); loadUpdate(); };
 $('updRestart').onclick = () => api.updateRestart();
@@ -438,6 +440,22 @@ $('rxWords').addEventListener('input', rxOwn); $('rxNot').addEventListener('chan
 function copyBtn(b, text) { navigator.clipboard.writeText(text).catch(() => api.copy(text)); const t = b.textContent; b.textContent = 'Skopiowano'; setTimeout(() => { b.textContent = t; }, 1300); }
 $('rxMapCopy').onclick = () => copyBtn($('rxMapCopy'), $('rxMapOut').textContent);
 $('rxOwnCopy').onclick = () => copyBtn($('rxOwnCopy'), $('rxOwnOut').textContent);
+
+// --- doradca craftu ---
+async function crRun() {
+  const r = await api.craftAdvise($('crIn').value);
+  if (r.error) { $('crOut').innerHTML = `<p class="err">${esc(r.error)}</p>`; return; }
+  const it = r.item, sm = r.summary || {};
+  const V = { good: ['✓', 'vg'], mid: ['·', 'vm'], bad: ['✕', 'vb'] };
+  const mods = (r.mods || []).map(m => `<tr><td class="${V[m.verdict][1]}">${V[m.verdict][0]}</td><td class="side">${m.side ? (m.side === 'prefix' ? 'prefix' : 'suffix') + (m.tier ? ' T' + m.tier : '') : m.type}</td><td>${esc(m.text)}${m.pl ? `<div class="muted">${esc(m.pl)}</div>` : ''}</td></tr>`).join('');
+  $('crOut').innerHTML = `<div class="card" style="margin-top:8px">
+    <div class="ct">${esc(it.name)} <span>${esc([it.baseType !== it.name ? it.baseType : '', it.itemClass, it.rarity, it.ilvl ? 'ilvl ' + it.ilvl : ''].filter(Boolean).join(' · '))}</span></div>
+    ${sm.max ? `<p class="muted">Prefixy: <b>${sm.pre}/${sm.max}</b> · suffixy: <b>${sm.suf}/${sm.max}</b>${sm.exact ? '' : ' (szacunek)'}</p>` : ''}
+    ${mods ? `<table class="cr-mods">${mods}</table>` : ''}</div>
+    <h2>Co zrobić</h2>${(r.steps || []).map(st => `<div class="cr-step"><b>${esc(st.t)}</b><span>${esc(st.d)}</span></div>`).join('')}`;
+}
+$('crGo').onclick = crRun;
+$('crPaste').onclick = async () => { try { $('crIn').value = await navigator.clipboard.readText(); crRun(); } catch { $('crIn').focus(); } };
 
 // --- poradniki ---
 function guideShow(id) {

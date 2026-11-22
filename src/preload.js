@@ -50,6 +50,8 @@ contextBridge.exposeInMainWorld('api', {
   updateCheck: () => inv('update:check'),
   updateRestart: () => inv('update:restart'),
   version: () => inv('version'),
+  errors: () => inv('errors'),
+  craftAdvise: t => inv('craft:advise', t),
   sheetsList: () => inv('sheets:list'),
   sheetsFolder: () => inv('sheets:open-folder'),
   sheetsHide: () => inv('sheets:hide'),

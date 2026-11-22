@@ -53,6 +53,12 @@
   .guide .warn { color: var(--gold); font-size: 12px; }
   table.gt td, table.gt th { padding: 4px 8px 4px 0; vertical-align: top; }
   table.gt td:first-child { font-weight: 600; white-space: nowrap; color: var(--text); }
+  .cr-mods td { padding: 4px 8px 4px 0; vertical-align: top; }
+  .cr-mods .side { font-family: 'PlexMono', monospace; font-size: 11px; color: var(--faint); white-space: nowrap; }
+  .cr-step { border-left: 2px solid var(--gold); padding: 6px 10px; margin: 6px 0; background: #1a1813; }
+  .cr-step b { display: block; margin-bottom: 2px; }
+  .cr-step span { color: #cfc9b8; font-size: 12.5px; }
+  .vg { color: var(--sell); } .vb { color: var(--bad); } .vm { color: var(--faint); }
   .rxout { display: flex; gap: 8px; align-items: center; }
   .rxout code { flex: 1; font-family: 'PlexMono', monospace; font-size: 13px; background: #0f0e0a; border: 1px solid var(--rule); padding: 6px 8px; word-break: break-all; color: var(--text); min-height: 30px; }
   .preset { display: grid; grid-template-columns: 170px 1fr auto; gap: 8px; align-items: center; margin: 5px 0; }
@@ -113,7 +119,7 @@
 <div class="wrap">
   <nav id="nav">
     <div class="brand">Nakładka PoE<small id="ver"></small></div>
-    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a><a data-s="poradniki">Poradniki</a>
+    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a><a data-s="poradniki">Poradniki</a><a data-s="doradca">Doradca craftu</a>
     <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
   </nav>
   <main>
@@ -238,6 +244,14 @@
       <div class="rxout"><code id="rxOwnOut"></code><span id="rxOwnLen" class="muted"></span><button id="rxOwnCopy">Kopiuj</button></div>
     </section>
 
+    <section id="doradca">
+      <h1>Doradca craftu</h1>
+      <p class="lead">Najedź na przedmiot w grze, wciśnij <kbd>Ctrl+C</kbd> (albo <kbd>Ctrl+Alt+C</kbd> — dokładniej) i wklej tutaj. Doradca oceni mody pod twój build i podpowie kolejne kroki.</p>
+      <textarea id="crIn" style="min-height:140px" placeholder="Item Class: Boots&#10;Rarity: Rare&#10;…"></textarea>
+      <p><button class="primary" id="crGo">Analizuj</button> <button id="crPaste">Wklej ze schowka</button></p>
+      <div id="crOut"></div>
+    </section>
+
     <section id="poradniki">
       <h1>Poradniki</h1>
       <div class="seg" id="gNav" style="margin:10px 0 14px"></div>
@@ -287,6 +301,8 @@
       <h1>Aktualizacje</h1>
       <p class="lead">Nowe wersje pobierają się same w tle (ok. 300 KB). Włączają się po ponownym uruchomieniu nakładki.</p>
       <div id="upd"></div>
+      <h2>Diagnostyka</h2>
+      <div id="errs" class="muted"></div>
       <p><button id="updCheck">Sprawdź teraz</button> <button id="updRestart" class="primary" hidden>Uruchom ponownie</button></p>
     </section>
   </main>

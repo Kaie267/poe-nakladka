@@ -1,1 +1,1 @@
-{ "version": "2.6.0", "size": 558290, "minBase": "2.0.0", "notes": "Poradnik kampanii (Ctrl+Shift+L) wygląda teraz jak w PoE Overlay: półprzezroczysty panel ze strefą, różnicą poziomu, bieżącym krokiem i kolejnymi w punktach. Nowa zakładka Poradniki: crafting, obrona, mapy w 3.30, handel, levelowanie." }
+{ "version": "2.7.0", "size": 569590, "minBase": "2.0.0", "notes": "Usunięte stare okno ze stroną poe-leveling — wszędzie otwiera się nakładka-poradnik. Nowa zakładka Doradca craftu (wklej przedmiot, dostaniesz plan). Diagnostyka błędów w zakładce Aktualizacje." }
