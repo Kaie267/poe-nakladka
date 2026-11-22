@@ -74,7 +74,7 @@
   .it td { vertical-align: middle; }
   .it img { width: 26px; height: 26px; object-fit: contain; display: block; }
   .it .nm { font-weight: 500; }
-  .it .nm small { color: var(--faint); font-weight: 400; margin-left: 4px; }
+  .it small { color: var(--faint); font-weight: 400; margin-left: 5px; }
   .rar-Unique { color: var(--unique); } .rar-Rare { color: var(--rare); } .rar-Magic { color: var(--magic); } .rar-Gem { color: var(--gem); } .rar-Currency, .rar-Divination { color: var(--cur); }
   .it.hidden td { opacity: 0.4; }
   .eye { background: none; border: none; color: var(--faint); padding: 0 4px; font-size: 13px; }
@@ -96,7 +96,7 @@
 <div class="wrap">
   <nav id="nav">
     <div class="brand">Nakładka PoE<small id="ver"></small></div>
-    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a>
+    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a>
     <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
   </nav>
   <main>
@@ -186,6 +186,12 @@
       </div>
     </section>
 
+    <section id="obserwowane">
+      <div class="head"><div><h1>Obserwowane</h1><p class="lead" style="margin:0">Ceny rzeczy, które farmisz albo chcesz kupić. Dodajesz gwiazdką ★ w okienku wyceny (Ctrl+D).</p></div>
+        <div class="acts"><button id="watchRefresh">Odśwież ceny</button></div></div>
+      <div class="card"><div id="watchList"></div></div>
+    </section>
+
     <section id="poradnik">
       <h1>Poradnik kampanii</h1>
       <p class="lead">Sam przechodzi do następnego kroku, gdy wchodzisz do nowej strefy. Trasa: exile-leveling (licencja MIT).</p>
@@ -193,6 +199,12 @@
       <div class="row"><span>Trasa na start ligi</span><input id="guideLeagueStart" type="checkbox"></div>
       <div class="hint">Wariant z dodatkowymi krokami opłacalnymi przy pierwszej postaci w lidze.</div>
       <div class="row"><span>Krok</span><div class="inline"><button id="guideReset">Zacznij od początku</button></div></div>
+      <h2>Twój build</h2>
+      <div class="row"><span>Typ obrażeń</span><select id="bpType"><option value="">nie wiem</option><option value="attack">ataki</option><option value="spell">czary</option><option value="minion">miniony</option><option value="dot">DoT (obrażenia z czasem)</option></select></div>
+      <div class="row"><span>Obrona</span><select id="bpDef"><option value="">nie wiem</option><option value="life">życie</option><option value="es">tarcza energii (ES)</option><option value="hybrid">życie + ES</option></select></div>
+      <div class="row"><span>Główny żywioł</span><select id="bpEl"><option value="">dowolny</option><option value="physical">fizyczne</option><option value="fire">ogień</option><option value="cold">zimno</option><option value="lightning">błyskawice</option><option value="chaos">chaos</option></select></div>
+      <div class="hint">Na tej podstawie okienko wyceny ocenia mody (✓ przydatne, ✕ nie dla ciebie). Ustawia się samo po wczytaniu PoB.</div>
+      <div class="row"><span>Pokazuj „Co dają mody”</span><input id="explainMods" type="checkbox"></div>
       <h2>Build z Path of Building</h2>
       <textarea id="pob" placeholder="Wklej kod PoB (Export > Generate > Copy)"></textarea>
       <p><button id="pobImport">Wczytaj build</button> <span id="pobInfo" class="hint" style="margin:0"></span></p>
@@ -203,7 +215,13 @@
       <h1>Mapy</h1>
       <p class="lead">Statystyki z bieżącej sesji (od startu nakładki albo resetu). Widać je też na pasku u góry ekranu.</p>
       <div class="stat" id="mapStats"></div>
+      <p class="muted" style="margin-top:-6px">Zysk liczy się z wycen w trybie liczenia (<kbd class="k-counting"></kbd>): włącz go na mapie i wciskaj Ctrl+D na dropach.</p>
+      <div id="mapRecent"></div>
       <p><button id="sessReset">Nowa sesja</button></p>
+      <h2>Ocena mapy przed odpaleniem</h2>
+      <div class="row"><span>Minimalny pack size (%)</span><input id="goalPack" type="number" min="0" max="200"></div>
+      <div class="row"><span>Minimalny quant / Atlas Drops (%)</span><input id="goalQuant" type="number" min="0" max="300"></div>
+      <div class="hint">Mapa spełniająca oba progi i bez groźnych modów dostaje werdykt „Odpalaj”.</div>
       <h2>Groźne mody map</h2>
       <textarea id="mapDanger"></textarea>
       <div class="hint" style="margin-left:0">Fragment tekstu modu, jeden na linię. Pasujące mody nakładka podświetli na czerwono.</div>

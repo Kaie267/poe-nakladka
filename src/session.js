@@ -22,6 +22,13 @@ class Session extends EventEmitter {
     this.maps = [];          // zakończone mapy: {area, ms}
     this.current = null;     // {area, enteredAt, inMapMs, lastEnter}
     this.where = 'town';
+    this.loot = 0;           // wycenione dropy w tej sesji (tryb liczenia)
+  }
+
+  addLoot(chaos) {
+    this.loot += chaos;
+    if (this.current) this.current.loot = (this.current.loot || 0) + chaos;
+    this.emit('change', this.stats());
   }
 
   isTown(area) { return TOWNS.test(area); }
@@ -40,8 +47,8 @@ class Session extends EventEmitter {
       this.where = 'town';
     } else {
       if (!this.current || this.current.area !== area) {
-        if (this.current) this.maps.push({ area: this.current.area, ms: this.current.inMapMs });
-        this.current = { area, enteredAt: now, inMapMs: 0, lastEnter: now };
+        if (this.current) this.maps.push({ area: this.current.area, ms: this.current.inMapMs, loot: this.current.loot || 0, at: this.current.enteredAt });
+        this.current = { area, enteredAt: now, inMapMs: 0, lastEnter: now, loot: 0 };
       } else this.current.lastEnter = now;
       this.where = 'map';
     }
@@ -68,8 +75,11 @@ class Session extends EventEmitter {
     const hours = (now - this.start) / 3600000;
     return {
       count, avgMs: avg, perHour: hours > 0.05 ? count / hours : null,
-      current: this.current ? { area: this.current.area, ms: curMs, inMap: this.where === 'map' } : null,
+      current: this.current ? { area: this.current.area, ms: curMs, inMap: this.where === 'map', loot: this.current.loot || 0 } : null,
       sessionMs: now - this.start,
+      loot: this.loot, lootPerHour: hours > 0.05 ? this.loot / hours : null,
+      lootPerMap: count ? this.loot / count : null,
+      recent: done.slice(-15).reverse(),
     };
   }
 }

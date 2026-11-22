@@ -33,6 +33,11 @@ const DEFAULTS = {
   guideVisible: false,
   buildName: '',
   buildGems: [],
+  buildProfile: { type: '', defense: '', element: '' },
+  explainMods: true,
+  autoExchange: true,
+  watch: [],                 // obserwowane: [{name, rarity, baseType, itemClass}]
+  mapGoal: { pack: 20, quant: 60 },
   stashRect: null,
   stashHidden: [],
   stashProfiles: [],         // [{id, name, tabs: [], cats: []}] — puste listy = wszystko

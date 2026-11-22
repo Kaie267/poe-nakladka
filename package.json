@@ -1,7 +1,7 @@
 {
   "name": "poe-nakladka",
   "productName": "Nakladka PoE",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Darmowa nakladka do Path of Exile 1: wycena, handel, mody map",
   "main": "boot.js",
   "scripts": {

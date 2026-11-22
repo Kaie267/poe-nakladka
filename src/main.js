@@ -12,6 +12,7 @@ const { Updater } = require('./updater');
 const { Session } = require('./session');
 const { scanListed, snapshotOf } = require('./stash');
 const { decodePob } = require('./pob');
+const { explainMods } = require('./modexplain');
 
 const PKG = require('../package.json');
 const VERSION = (global.__nakladka && global.__nakladka.version) || PKG.version;
@@ -61,7 +62,7 @@ function createWindows() {
   const wa = screen.getPrimaryDisplay().workArea;
   const b = screen.getPrimaryDisplay().bounds;
 
-  W.overlay = onTop(new BrowserWindow({ ...base, width: 400, height: 560 }));
+  W.overlay = onTop(new BrowserWindow({ ...base, width: 420, height: 600 }));
   W.overlay.loadFile(UI('overlay.html'));
   W.overlay.on('blur', () => { if (!W.overlay.webContents.isDevToolsOpened()) W.overlay.hide(); });
 
@@ -75,7 +76,7 @@ function createWindows() {
   W.guide.loadFile(UI('guide.html'));
   W.guide.once('ready-to-show', () => { if (settings.get().guideVisible) W.guide.showInactive(); });
 
-  W.hud = onTop(new BrowserWindow({ ...base, width: 560, height: 34, x: Math.round(wa.x + wa.width / 2 - 280), y: wa.y + 4 }));
+  W.hud = onTop(new BrowserWindow({ ...base, width: 760, height: 34, x: Math.round(wa.x + wa.width / 2 - 380), y: wa.y + 4 }));
   W.hud.setIgnoreMouseEvents(true);
   W.hud.loadFile(UI('hud.html'));
   W.hud.once('ready-to-show', () => { if (settings.get().hudVisible) W.hud.showInactive(); });
@@ -166,8 +167,12 @@ async function priceCheck(advanced) {
   W.overlay.focus();
   if (!item) { send('overlay', 'item', { error: 'Nie rozpoznano przedmiotu. Najedź kursorem na przedmiot w grze i wciśnij skrót jeszcze raz.' }); return; }
   currentItem = item;
+  currentExchange = null;
   const s = settings.get();
-  send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, counting: counting.on, tradeStatus: s.tradeStatus, league: s.league });
+  const watched = (s.watch || []).some(w => w.name === item.name && w.baseType === item.baseType);
+  const explained = s.explainMods && item.mods.length && !item.isMap ? explainMods(item.mods, s.buildProfile || {}) : null;
+  send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, mapGoal: s.mapGoal, counting: counting.on, tradeStatus: s.tradeStatus,
+    league: s.league, watched, explained, profile: s.buildProfile, buildName: s.buildName });
   runPricing(item).catch(e => send('overlay', 'ninja', { error: e.message }));
 }
 
@@ -177,9 +182,15 @@ async function runPricing(item) {
   let res = null;
   try { res = await ninja.priceItem(item); } catch (e) { send('overlay', 'ninja', { error: 'poe.ninja: ' + e.message }); }
   const divine = await ninja.divinePrice();
-  send('overlay', 'ninja', { result: res, divine });
+  send('overlay', 'ninja', { result: res, divine, icons: await ninja.getIcons() });
   if (counting.on && res && res.price && res.price.chaos != null) addCount(item, res.price.chaos * (item.stack || 1));
 
+  // Waluta, karty, fragmenty itp.: od razu oferty z wymiany hurtowej (jak w PoE Overlay).
+  const tradeId = res && res.price && res.price.tradeId;
+  if (tradeId && (item.rarity === 'Currency' || item.rarity === 'Divination Card') && s.autoExchange !== false) {
+    currentExchange = { want: tradeId, have: tradeId === 'chaos' ? 'divine' : 'chaos' };
+    doExchange({}).catch(() => {});
+  }
   const isGear = !['Currency', 'Divination Card', 'Gem', 'Unique'].includes(item.rarity) && !item.isMap;
   if (isGear) {
     try {
@@ -188,6 +199,17 @@ async function runPricing(item) {
       if (s.autoTradeRares && item.rarity === 'Rare') await doTradeSearch({ filters, useBase: true, ilvl: false, status: s.tradeStatus });
     } catch (e) { send('overlay', 'trade', { error: e.message }); }
   }
+}
+
+let currentExchange = null;
+async function doExchange(opts) {
+  if (!currentExchange) return;
+  if (opts.have) currentExchange.have = opts.have;
+  send('overlay', 'exchange', { loading: true });
+  try {
+    const r = await trade.exchange(currentExchange.want, currentExchange.have, { status: opts.status || settings.get().tradeStatus });
+    send('overlay', 'exchange', { result: r, icons: await ninja.getIcons() });
+  } catch (e) { send('overlay', 'exchange', { error: e.message }); }
 }
 
 async function doTradeSearch(opts) {
@@ -204,6 +226,7 @@ async function doTradeSearch(opts) {
 function addCount(item, chaos) {
   counting.items.push({ name: item.name, chaos });
   counting.total += chaos;
+  if (sess) sess.addLoot(chaos);
   pushHud();
 }
 function toggleCounting() {
@@ -418,6 +441,7 @@ ipcMain.handle('pick-log', async () => {
   return r.canceled ? '' : r.filePaths[0];
 });
 ipcMain.handle('trade:search', (_e, opts) => doTradeSearch(opts));
+ipcMain.handle('trade:exchange', (_e, opts) => doExchange(opts || {}));
 ipcMain.handle('open', (_e, url) => {
   if (/^https:\/\/www\.pathofexile\.com\/trade/.test(url)) toggleMarket(url);
   else if (/^https:\/\//.test(url)) shell.openExternal(url);
@@ -440,12 +464,34 @@ ipcMain.handle('pob:import', (_e, code) => {
     const r = decodePob(code);
     const patch = { buildGems: r.gems, buildName: [r.ascendancy || r.className, `${r.gems.length} gemów`].filter(Boolean).join(' · ') };
     if (r.className) patch.guideClass = r.className;
+    if (r.profile) patch.buildProfile = r.profile;
     settings.quiet(patch);
     send('guide', 'settings', settings.get());
     return { ok: true, ...r };
   } catch (e) { return { error: 'Nie udało się odczytać kodu PoB: ' + e.message }; }
 });
 ipcMain.handle('stash:refresh', () => refreshStash());
+ipcMain.handle('watch:toggle', () => {
+  if (!currentItem) return false;
+  const it = currentItem;
+  const list = settings.get().watch || [];
+  const i = list.findIndex(w => w.name === it.name && w.baseType === it.baseType);
+  const next = i >= 0 ? list.filter((_, k) => k !== i) : [...list, { name: it.name, rarity: it.rarity, baseType: it.baseType, itemClass: it.itemClass, links: it.links || 0, gemLevel: it.gemLevel, quality: it.quality, isMap: it.isMap, mapTier: it.mapTier, corrupted: it.corrupted }];
+  settings.quiet({ watch: next });
+  send('settings', 'watch', null);
+  return i < 0;
+});
+ipcMain.handle('watch:remove', (_e, idx) => { const l = (settings.get().watch || []).filter((_, k) => k !== idx); settings.quiet({ watch: l }); return l; });
+ipcMain.handle('watch:prices', async () => {
+  ninja.setLeague(settings.get().league);
+  const out = [];
+  for (const w of settings.get().watch || []) {
+    let r = null;
+    try { r = await ninja.priceItem({ ...w, mods: [], stack: 1 }); } catch { /* */ }
+    out.push({ ...w, price: r && r.price ? r.price : null });
+  }
+  return { list: out, divine: await ninja.divinePrice(), icons: await ninja.getIcons() };
+});
 ipcMain.handle('stash:history', () => stashHistory);
 ipcMain.handle('stash:ingame', () => { if (!W.stash.isVisible()) toggleStash(); });
 ipcMain.handle('stash:hide-item', (_e, name, hide) => {

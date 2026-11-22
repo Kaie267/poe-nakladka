@@ -11,6 +11,7 @@ api.on('hud', d => {
     parts.push(`Mapy <b>${m.count}</b>`);
     parts.push(`śr. <b>${t(m.avgMs)}</b>`);
     if (m.perHour) parts.push(`<b>${m.perHour.toFixed(1)}</b>/h`);
+    if (m.loot) parts.push(`zysk <b>${c(m.loot)} c</b>${m.lootPerHour ? ` · <b>${c(m.lootPerHour)}</b> c/h` : ''}`);
     if (m.current) parts.push(`${m.current.inMap ? '<span class="dot"></span>' : ''}${esc(m.current.area)} <b>${t(m.current.ms)}</b>`);
   }
   if (d.counting && (d.counting.on || d.counting.n)) {

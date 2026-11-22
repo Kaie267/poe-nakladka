@@ -1,16 +1,17 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : (+n).toFixed(1);
+const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const FIELDS = ['vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart'];
+const CHECKS = ['autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.s === sec));
   if (sec === 'handel') loadHistory();
   if (sec === 'aktualizacje') loadUpdate();
+  if (sec === 'obserwowane') loadWatch();
 }
 document.querySelectorAll('nav a').forEach(a => a.onclick = () => show(a.dataset.s));
 api.on('goto', show);
@@ -30,6 +31,8 @@ async function load() {
   $('commands').value = (s.commands || []).map(c => `${c.key} = ${c.text}`).join('\n');
   $('mapDanger').value = (s.mapDanger || []).join('\n');
   $('pobInfo').textContent = s.buildName ? 'Wczytany: ' + s.buildName : '';
+  const bp = s.buildProfile || {}; $('bpType').value = bp.type || ''; $('bpDef').value = bp.defense || ''; $('bpEl').value = bp.element || '';
+  const g = s.mapGoal || { pack: 20, quant: 60 }; $('goalPack').value = g.pack; $('goalQuant').value = g.quant;
   await stashInit();
 }
 
@@ -41,6 +44,8 @@ $('save').onclick = async () => {
   for (const k of FIELDS) patch[k] = $(k).value.trim();
   for (const k of ['vendorThreshold', 'modMinPercent']) patch[k] = Number(patch[k]) || 0;
   for (const k of CHECKS) patch[k] = $(k).checked;
+  patch.buildProfile = { type: $('bpType').value, defense: $('bpDef').value, element: $('bpEl').value };
+  patch.mapGoal = { pack: Number($('goalPack').value) || 0, quant: Number($('goalQuant').value) || 0 };
   await api.setSettings(patch);
   document.querySelectorAll('[class^="k-"]').forEach(k => { k.textContent = hotkeys[k.className.slice(2)] || ''; });
   $('saved').textContent = 'Zapisano';
@@ -56,6 +61,7 @@ $('pobImport').onclick = async () => {
   if (r.error) { $('pobInfo').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
   $('pobInfo').innerHTML = `<span class="ok">Wczytany: ${esc(r.ascendancy || r.className || '')} · ${r.gems.length} gemów</span>`;
   if (r.className) $('guideClass').value = r.className;
+  if (r.profile) { $('bpType').value = r.profile.type || ''; $('bpDef').value = r.profile.defense || ''; $('bpEl').value = r.profile.element || ''; }
 };
 
 // --- stash ---
@@ -298,8 +304,30 @@ api.on('trade', () => loadHistory());
 api.on('hud', d => {
   const m = d.maps; if (!m) return;
   $('mapStats').innerHTML = `<div><span>mapy</span><b class="big">${m.count}</b></div><div><span>średni czas</span><b class="big">${t(m.avgMs)}</b></div>
-    <div><span>map na godzinę</span><b class="big">${m.perHour ? m.perHour.toFixed(1) : '—'}</b></div><div><span>sesja</span><b class="big">${t(m.sessionMs)}</b></div>`;
+    <div><span>map na godzinę</span><b class="big">${m.perHour ? m.perHour.toFixed(1) : '—'}</b></div>
+    <div><span>zysk</span><b class="big">${fmt(m.loot || 0)} c</b></div><div><span>na godzinę</span><b class="big">${m.lootPerHour ? fmt(m.lootPerHour) + ' c' : '—'}</b></div>`;
+  const rec = m.recent || [];
+  $('mapRecent').innerHTML = rec.length ? `<table><tr><th>Mapa</th><th style="text-align:right">czas</th><th style="text-align:right">zysk</th><th style="text-align:right">c/h</th></tr>${rec.map(r => `<tr><td>${esc(r.area)}</td><td class="n">${t(r.ms)}</td><td class="n">${fmt(r.loot || 0)} c</td><td class="n">${r.ms > 30000 && r.loot ? fmt(r.loot / (r.ms / 3600000)) : '—'}</td></tr>`).join('')}</table>` : '';
 });
+
+// --- obserwowane ---
+async function loadWatch() {
+  $('watchList').innerHTML = '<div class="empty">Wczytuję ceny…</div>';
+  const r = await api.watchPrices();
+  const ic = k => r.icons && r.icons[k] ? `<img class="ci" src="${esc(r.icons[k])}" alt="" style="width:16px;height:16px;vertical-align:-3px">` : (k === 'divine' ? ' div' : ' c');
+  const m = c => c == null ? '—' : r.divine && c >= r.divine ? `${(c / r.divine).toFixed(2)}${ic('divine')}` : `${fmt(c)}${ic('chaos')}`;
+  const sp = (data, ch) => { const v = (data || []).filter(x => x != null); if (v.length < 2) return ''; const mn = Math.min(...v), mx = Math.max(...v);
+    return `<svg width="70" height="20" viewBox="0 0 70 20"><polyline points="${v.map((y, i) => `${(i / (v.length - 1) * 70).toFixed(1)},${(18 - (mx === mn ? 0.5 : (y - mn) / (mx - mn)) * 16).toFixed(1)}`).join(' ')}" fill="none" stroke="${ch >= 0 ? '#8fbf6a' : '#d9694f'}" stroke-width="1.6"/></svg>`; };
+  $('watchList').innerHTML = r.list.length ? `<table><tr><th></th><th>Przedmiot</th><th style="text-align:right">cena</th><th style="text-align:right">7 dni</th><th></th><th></th></tr>
+    ${r.list.map((w, i) => { const p = w.price || {}; return `<tr class="it"><td>${p.icon && /^https:\/\/(web\.poecdn\.com|poe\.ninja)\//.test(p.icon) ? `<img src="${esc(p.icon)}" alt="">` : ''}</td>
+      <td><span class="nm rar-${esc(String(w.rarity).split(' ')[0])}">${esc(w.name)}</span>${w.gemLevel ? `<small>poz. ${w.gemLevel}</small>` : ''}${w.links >= 5 ? `<small>${w.links}L</small>` : ''}</td>
+      <td class="n">${m(p.chaos)}</td><td class="n ${p.change >= 0 ? 'up' : 'down'}">${p.change != null ? (p.change >= 0 ? '+' : '') + Math.round(p.change) + '%' : ''}</td>
+      <td>${sp(p.spark, p.change)}</td><td><button class="eye" data-rm="${i}" title="Usuń">×</button></td></tr>`; }).join('')}</table>`
+    : '<div class="empty">Pusto. Wciśnij Ctrl+D na przedmiocie w grze i kliknij ★ w okienku wyceny.</div>';
+  $('watchList').querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { await api.watchRemove(+b.dataset.rm); loadWatch(); });
+}
+$('watchRefresh').onclick = loadWatch;
+api.on('watch', () => { if (document.getElementById('obserwowane').classList.contains('on')) loadWatch(); });
 $('sessReset').onclick = () => api.sessionReset();
 
 // --- aktualizacje ---

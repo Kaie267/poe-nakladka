@@ -78,8 +78,11 @@ class Ninja {
             if (d.tradeId) this.tradeIcons[d.tradeId] = d.icon;
           }
         }
+        const det = new Map((j.currencyDetails || []).map(d => [d.name, d]));
         lines = (j.lines || []).map(l => ({
           name: l.currencyTypeName, chaos: l.chaosEquivalent, change: totalChange(l.receiveSparkLine) ?? totalChange(l.paySparkLine),
+          spark: (l.receiveSparkLine && l.receiveSparkLine.data && l.receiveSparkLine.data.some(v => v != null) ? l.receiveSparkLine : l.lowConfidenceReceiveSparkLine || {}).data || null,
+          icon: (det.get(l.currencyTypeName) || {}).icon || null, tradeId: (det.get(l.currencyTypeName) || {}).tradeId || null,
           listings: (l.receive && l.receive.listing_count) || null, source: 'poe.ninja', category: type,
         }));
       } else if (kind === 'exchange') {
@@ -91,6 +94,7 @@ class Ninja {
           name: l.name, baseType: l.baseType, chaos: l.chaosValue, divine: l.divineValue, variant: l.variant || null,
           links: l.links || 0, corrupted: !!l.corrupted, gemLevel: l.gemLevel ?? null, gemQuality: l.gemQuality ?? null,
           mapTier: l.mapTier ?? null, listings: l.listingCount ?? l.count ?? null, change: totalChange(l.sparkLine || l.lowConfidenceSparkLine),
+          spark: ((l.sparkLine && l.sparkLine.data && l.sparkLine.data.length ? l.sparkLine : l.lowConfidenceSparkLine) || {}).data || null, icon: l.icon || null,
           source: 'poe.ninja', category: type,
         }));
       }
@@ -105,20 +109,26 @@ class Ninja {
 
   parseExchange(j, type) {
     const core = j.core || {};
-    const items = Array.isArray(core.items) ? core.items : Object.entries(core.items || {}).map(([id, v]) => ({ id, ...v }));
-    const nameById = new Map(items.map(it => [it.id, it.name || it.text]));
+    const list = it => (Array.isArray(it) ? it : Object.entries(it || {}).map(([id, v]) => ({ id, ...v })));
+    // Nazwy linii są w j.items (core.items zawiera tylko waluty odniesienia).
+    const meta = new Map([...list(core.items), ...list(j.items)].map(it => [it.id, it]));
     const rates = core.rates || {};
-    // primaryValue jest w walucie "primary" (np. divine). Przeliczamy na chaos.
     let chaosPerPrimary = 1;
     if (core.primary && core.primary !== 'chaos') {
       const r = rates.chaos;
       if (typeof r === 'number' && r > 0) chaosPerPrimary = r >= 1 ? r : 1 / r;
     }
-    return (j.lines || []).map(l => ({
-      name: nameById.get(l.id) || l.name || l.id,
-      chaos: typeof l.primaryValue === 'number' ? l.primaryValue * chaosPerPrimary : null,
-      change: totalChange(l.sparkline || l.sparkLine), listings: null, source: 'poe.ninja (exchange)', category: type,
-    }));
+    return (j.lines || []).map(l => {
+      const m = meta.get(l.id) || {};
+      const img = m.image || m.icon || null;
+      return {
+        name: m.name || m.text || l.name || l.id,
+        chaos: typeof l.primaryValue === 'number' ? l.primaryValue * chaosPerPrimary : null,
+        change: totalChange(l.sparkline || l.sparkLine), spark: ((l.sparkline || l.sparkLine || {}).data) || null,
+        icon: img ? (/^https?:/.test(img) ? img : 'https://poe.ninja' + img) : null,
+        tradeId: l.id, listings: null, source: 'poe.ninja', category: type,
+      };
+    });
   }
 
   async divinePrice() {

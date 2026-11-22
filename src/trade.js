@@ -261,4 +261,27 @@ class Trade {
   }
 }
 
+// Wymiana hurtowa (Currency Exchange na stronie trade): oferty "daj X, dostaniesz Y" ze stanem magazynu.
+Trade.prototype.exchange = async function (wantId, haveId, opts = {}) {
+  const s = this.getSettings();
+  const league = encodeURIComponent(s.league);
+  const body = { query: { status: { option: opts.status || 'online' }, have: [haveId], want: [wantId] }, sort: { have: 'asc' }, engine: 'new' };
+  const res = await this.call('exchange', 'POST', `/api/trade/exchange/${league}`, body);
+  const rows = [];
+  for (const r of Object.values(res.result || {})) {
+    const l = r && r.listing;
+    if (!l) continue;
+    for (const o of l.offers || []) {
+      if (!o.exchange || !o.item) continue;
+      rows.push({
+        id: r.id + ':' + rows.length, pay: o.exchange.amount, payCur: o.exchange.currency, get: o.item.amount, getCur: o.item.currency,
+        stock: o.item.stock ?? null, account: l.account && l.account.name, indexed: l.indexed,
+        unit: o.item.amount ? o.exchange.amount / o.item.amount : null, // ile waluty za 1 sztukę
+      });
+    }
+  }
+  rows.sort((a, b) => (a.unit ?? 1e9) - (b.unit ?? 1e9));
+  return { total: res.total || rows.length, rows: rows.slice(0, 30), url: `${SITE}/trade/exchange/${league}/${res.id}`, have: haveId, want: wantId };
+};
+
 module.exports = { Trade, RateLimiter, StatIndex, pseudoTotals, CATEGORY };
