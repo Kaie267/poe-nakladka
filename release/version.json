@@ -1,1 +1,1 @@
-{ "version": "2.4.1", "size": 535961, "minBase": "2.0.0", "notes": "Ctrl+Shift+L zawsze otwiera interaktywny poradnik nad grą. Strona poe-leveling.com tylko z linku w poradniku." }
+{ "version": "2.5.0", "size": 548518, "minBase": "2.0.0", "notes": "Ctrl+Shift+L: nakładka z poradnikiem poe-leveling.com w stylu PoE Overlay — strefa i różnica poziomu, bieżący krok, potem kolejne, sama przeskakuje po wejściu do strefy. Wbudowany poradnik nadal do wyboru w zakładce Poradnik." }

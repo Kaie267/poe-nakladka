@@ -14,6 +14,7 @@ const { scanListed, snapshotOf } = require('./stash');
 const { decodePob } = require('./pob');
 const { explainMods } = require('./modexplain');
 const { compareItem, resGaps } = require('./compare');
+const PL = require('./plinject');
 
 const PKG = require('../package.json');
 const VERSION = (global.__nakladka && global.__nakladka.version) || PKG.version;
@@ -75,7 +76,7 @@ function createWindows() {
   W.guide = onTop(new BrowserWindow({ ...base, width: 430, height: 300, x: wa.x + 20, y: wa.y + 120 }));
   W.guide.setIgnoreMouseEvents(true, { forward: true });
   W.guide.loadFile(UI('guide.html'));
-  W.guide.once('ready-to-show', () => { if (settings.get().guideVisible) W.guide.showInactive(); });
+  W.guide.once('ready-to-show', () => { if (settings.get().guideVisible && !guideIsPL()) W.guide.showInactive(); });
 
   W.hud = onTop(new BrowserWindow({ ...base, width: 760, height: 34, x: Math.round(wa.x + wa.width / 2 - 380), y: wa.y + 4 }));
   W.hud.setIgnoreMouseEvents(true);
@@ -293,6 +294,54 @@ function toggleGuide() {
   settings.quiet({ guideVisible: vis });
 }
 
+// ---------- nakładka poe-leveling.com ----------
+let charLevel = null, lastArea = null;
+function areaLevelFor(name) {
+  const lv = guideData && guideData.areaLevels && guideData.areaLevels[name];
+  if (!lv || !lv.length) return null;
+  return charLevel ? lv.slice().sort((a, b) => Math.abs(a - charLevel) - Math.abs(b - charLevel))[0] : lv[0];
+}
+function plZone() {
+  if (!W.pl || W.pl.isDestroyed() || !lastArea) return;
+  const al = areaLevelFor(lastArea);
+  const lv = al && charLevel ? { diff: charLevel - al, char: charLevel, area: al } : null;
+  W.pl.webContents.executeJavaScript(`window.__pl && window.__pl.zone(${JSON.stringify(lastArea)}, ${JSON.stringify(lv)})`).catch(() => {});
+}
+function createPL() {
+  const wa = screen.getPrimaryDisplay().workArea;
+  const b = settings.get().plBounds || { width: 440, height: 260, x: wa.x + wa.width - 460, y: wa.y + 40 };
+  W.pl = onTop(new BrowserWindow({ ...b, frame: false, skipTaskbar: true, show: false, resizable: true, minWidth: 280, minHeight: 90, backgroundColor: '#13120e', alwaysOnTop: true,
+    webPreferences: { partition: 'persist:leveling', contextIsolation: true } }));
+  W.pl.webContents.on('did-finish-load', () => {
+    W.pl.webContents.insertCSS(PL.CSS).catch(() => {});
+    W.pl.webContents.executeJavaScript(PL.JS).then(() => setTimeout(plZone, 800)).catch(() => {});
+    applyLook();
+  });
+  W.pl.webContents.on('console-message', (...args) => {
+    const msg = typeof args[0] === 'object' && args[0].message ? args[0].message : args[2];
+    if (typeof msg !== 'string' || !msg.startsWith('PL|')) return;
+    const [, kind, a, compact] = msg.split('|');
+    if (kind === 'hide') { W.pl.hide(); settings.quiet({ guideVisible: false }); }
+    if (kind === 'size' && compact === '1') { const [w] = W.pl.getSize(); W.pl.setSize(w, Math.max(110, Math.min(560, (+a || 200) + 4))); }
+  });
+  W.pl.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  const save = () => { if (W.pl && !W.pl.isDestroyed()) settings.quiet({ plBounds: W.pl.getBounds() }); };
+  W.pl.on('moved', save); W.pl.on('resized', save);
+  W.pl.loadURL('https://poe-leveling.com/');
+}
+function togglePL(force) {
+  if (!W.pl || W.pl.isDestroyed()) { createPL(); W.pl.once('ready-to-show', () => { W.pl.showInactive(); settings.quiet({ guideVisible: true }); }); return; }
+  const vis = force != null ? force : !W.pl.isVisible();
+  if (vis) { W.pl.showInactive(); plZone(); } else W.pl.hide();
+  settings.quiet({ guideVisible: vis });
+}
+const guideIsPL = () => (settings.get().guideSource || 'poe-leveling') !== 'builtin';
+function toggleActiveGuide() { if (guideIsPL()) togglePL(); else toggleGuide(); }
+function moveGuide(d) {
+  if (guideIsPL()) { if (W.pl && !W.pl.isDestroyed()) W.pl.webContents.executeJavaScript(`window.__pl && window.__pl.move(${d})`).catch(() => {}); }
+  else send('guide', 'guide:move', d);
+}
+
 // ---------- labirynt ----------
 function toggleLab(forceShow) {
   const wa = screen.getPrimaryDisplay().workArea;
@@ -383,7 +432,7 @@ function applyLook() {
   const s = settings.get();
   const z = Math.max(0.7, Math.min(1.6, Number(s.uiScale) || 1));
   const o = Math.max(0.5, Math.min(1, Number(s.uiOpacity) || 1));
-  for (const k of ['overlay', 'notify', 'guide', 'hud', 'sheets']) {
+  for (const k of ['overlay', 'notify', 'guide', 'hud', 'sheets', 'pl']) {
     const w = W[k]; if (!w || w.isDestroyed()) continue;
     w.webContents.setZoomFactor(z);
     w.setOpacity(o);
@@ -404,10 +453,9 @@ function registerHotkeys() {
   reg(h.priceCheckAdvanced, () => priceCheck(true));
   reg(h.market, () => toggleMarket());
   reg(h.settings, () => openSettings());
-  reg(h.guide, toggleGuide);
-  // Pierwsze uruchomienie poradnika: pokaż od razu, bez czekania na zapis ustawień.
-  reg(h.guideNext, () => send('guide', 'guide:move', 1));
-  reg(h.guidePrev, () => send('guide', 'guide:move', -1));
+  reg(h.guide, toggleActiveGuide);
+  reg(h.guideNext, () => moveGuide(1));
+  reg(h.guidePrev, () => moveGuide(-1));
   reg(h.leveling, toggleLeveling);
   reg(h.stash, toggleStash);
   reg(h.counting, toggleCounting);
@@ -455,7 +503,7 @@ function makeTray() {
   const menu = () => Menu.buildFromTemplate([
     { label: 'Ustawienia', click: () => openSettings() },
     { label: 'Market (strona trade)', click: () => toggleMarket() },
-    { label: 'Poradnik kampanii', click: toggleGuide },
+    { label: 'Poradnik kampanii', click: toggleActiveGuide },
     { label: 'poe-leveling.com', click: toggleLeveling },
     { label: 'Stash — wartość', click: toggleStash },
     { label: 'Ściągi', click: toggleSheets },
@@ -498,6 +546,8 @@ app.whenReady().then(async () => {
   logw = new LogWatch();
   logw.on('event', ev => {
     if (ev.kind === 'entered' && /Aspirants' Plaza/i.test(ev.area) && settings.get().labAuto) toggleLab(true);
+    if (ev.kind === 'level') { charLevel = ev.level; settings.quiet({ charLevel }); plZone(); }
+    if (ev.kind === 'entered') { lastArea = ev.area; plZone(); }
     send('notify', 'log', ev);
     send('guide', 'log', ev);
     sess.onLog(ev);
@@ -525,6 +575,8 @@ app.whenReady().then(async () => {
   try { stashHistory = JSON.parse(fs.readFileSync(histFile(), 'utf8')); } catch { stashHistory = []; }
   scheduleStash();
   connectLive();
+  charLevel = settings.get().charLevel || null; lastArea = settings.get().lastArea || null;
+  if (settings.get().guideVisible && guideIsPL()) togglePL(true);
   for (const k of ['overlay', 'notify', 'guide', 'hud']) W[k].webContents.once('did-finish-load', applyLook);
   focusLoop();
   if (!settings.get().league || !settings.get().clientLog) openSettings();
@@ -576,6 +628,13 @@ ipcMain.handle('guide:data', () => guideData);
 ipcMain.handle('guide:hide', () => { W.guide.hide(); settings.quiet({ guideVisible: false }); });
 ipcMain.handle('guide:resize', (_e, h) => { const [w] = W.guide.getSize(); W.guide.setSize(w, Math.max(80, Math.min(700, Math.round(h)))); });
 ipcMain.handle('leveling:toggle', () => toggleLeveling());
+ipcMain.handle('guide:source', (_e, src) => {
+  const wasVisible = (W.pl && !W.pl.isDestroyed() && W.pl.isVisible()) || (W.guide && W.guide.isVisible());
+  settings.quiet({ guideSource: src });
+  if (W.pl && !W.pl.isDestroyed()) W.pl.hide();
+  W.guide.hide();
+  if (wasVisible) { if (src === 'builtin') W.guide.showInactive(); else togglePL(true); }
+});
 ipcMain.handle('pob:import', (_e, code) => {
   try {
     const r = decodePob(code);

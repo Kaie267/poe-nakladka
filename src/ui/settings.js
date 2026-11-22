@@ -35,6 +35,7 @@ async function load() {
   const g = s.mapGoal || { pack: 20, quant: 60 }; $('goalPack').value = g.pack; $('goalQuant').value = g.quant;
   await stashInit();
   showLook(); renderProfileBox(s); lsRender(s); rxInit(s);
+  $('guideSourceSel').value = s.guideSource || 'poe-leveling';
 }
 
 $('save').onclick = async () => {
@@ -390,6 +391,7 @@ $('lsAdd').onclick = () => {
   lsSave();
 };
 $('login2').onclick = () => api.marketLogin();
+$('guideSourceSel').onchange = () => api.guideSource($('guideSourceSel').value);
 api.on('live', () => lsRender());
 
 // --- regexy ---

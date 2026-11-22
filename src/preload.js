@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
   guideHide: () => inv('guide:hide'),
   guideResize: h => inv('guide:resize', h),
   levelingToggle: () => inv('leveling:toggle'),
+  guideSource: s => inv('guide:source', s),
   pobImport: code => inv('pob:import', code),
   stashRefresh: () => inv('stash:refresh'),
   liveState: () => inv('live:state'),

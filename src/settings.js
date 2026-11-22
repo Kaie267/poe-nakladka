@@ -32,6 +32,8 @@ const DEFAULTS = {
   guideClass: 'Witch',
   guideLeagueStart: true,
   guideVisible: false,
+  guideSource: 'poe-leveling', // 'poe-leveling' (nakładka na stronę poe-leveling.com) albo 'builtin' (trasa exile-leveling)
+  plBounds: null,
   buildName: '',
   buildGems: [],
   buildProfile: { type: '', defense: '', element: '' },
@@ -94,6 +96,7 @@ class Settings {
       this.data.migr24 = true; this.data.migr241 = true;
       try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch { /* */ }
     }
+    if (/^https?:/i.test(this.data.hotkeys.leveling || '')) this.data.hotkeys.leveling = '';
     if (!this.data.migr24) {
       const h = this.data.hotkeys;
       if (h.leveling === 'Ctrl+Shift+L' && h.guide === 'Ctrl+Shift+G') { h.guide = 'Ctrl+Shift+L'; h.leveling = 'Ctrl+Shift+G'; }
