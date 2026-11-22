@@ -102,11 +102,12 @@ const JS = `(() => {
   }
 
   S.move = d => { S.cur += d; render(); };
-  S.zone = (area, lv) => {
+  S.zone = (area, lv, follow) => {
     const zEl = document.getElementById('pl-z'); if (!zEl) return;
     zEl.textContent = area;
     const b = document.getElementById('pl-lv');
     if (lv && lv.diff != null) { b.hidden = false; b.textContent = (lv.diff > 0 ? '+' : '') + lv.diff; b.className = 'lv ' + (lv.diff < -2 ? 'low' : lv.diff > 3 ? 'high' : 'ok'); b.title = 'Twój poziom ' + lv.char + ', strefa ' + lv.area; } else b.hidden = true;
+    if (!follow) return; // gracz przewija kroki sam
     const z = norm(area), L = S.steps;
     // najpierw krok zaczynający się od tej strefy, potem krok, który do niej prowadzi
     // Szukamy najpierw blisko bieżącego kroku, potem dalej do przodu, a na końcu od początku trasy

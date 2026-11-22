@@ -4,7 +4,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const FIELDS = ['watchAlertPct', 'listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['priceCompact', 'filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
+const CHECKS = ['guideAuto', 'priceCompact', 'filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));

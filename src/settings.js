@@ -33,6 +33,7 @@ const DEFAULTS = {
   guideClass: 'Witch',
   guideLeagueStart: true,
   guideVisible: false,
+  guideAuto: false,          // czy poradnik sam przeskakuje do kroku po wejściu do strefy
   guideSource: 'poe-leveling', // 'poe-leveling' (nakładka na stronę poe-leveling.com) albo 'builtin' (trasa exile-leveling)
   plBounds: null,
   buildName: '',

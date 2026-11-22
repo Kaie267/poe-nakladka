@@ -348,7 +348,7 @@ function plZone() {
   if (!W.pl || W.pl.isDestroyed() || !lastArea) return;
   const al = areaLevelFor(lastArea);
   const lv = al && charLevel ? { diff: charLevel - al, char: charLevel, area: al } : null;
-  W.pl.webContents.executeJavaScript(`window.__pl && window.__pl.zone(${JSON.stringify(lastArea)}, ${JSON.stringify(lv)})`).catch(() => {});
+  W.pl.webContents.executeJavaScript(`window.__pl && window.__pl.zone(${JSON.stringify(lastArea)}, ${JSON.stringify(lv)}, ${settings.get().guideAuto ? 'true' : 'false'})`).catch(() => {});
 }
 function createPL() {
   const wa = screen.getPrimaryDisplay().workArea;

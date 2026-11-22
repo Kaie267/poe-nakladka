@@ -1,1 +1,1 @@
-{ "version": "3.2.0", "size": 597366, "minBase": "2.0.0", "notes": "DPS broni w wycenie (fizyczny, żywiołowy, chaos, z 20% quality, APS, kryt). Kopia ustawień do pliku i wczytywanie (zakładka Aktualizacje)." }
+{ "version": "3.2.1", "size": 597880, "minBase": "2.0.0", "notes": "Poradnik nie przeskakuje już sam po wejściu do strefy — kroki przewijasz sam (można włączyć z powrotem w zakładce Poradnik)." }

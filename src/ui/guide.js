@@ -34,6 +34,7 @@ api.on('log', ev => {
   if (ev.kind === 'level') { charLevel = ev.level; api.quiet({ charLevel }); render(); return; }
   if (ev.kind !== 'entered' || !steps.length) return;
   area = ev.area; api.quiet({ lastArea: area });
+  if (!cfg.guideAuto) { render(); return; }
   // Szukamy najbliższego kroku, który prowadzi do tej strefy, i przechodzimy za niego.
   for (let i = idx; i < Math.min(steps.length, idx + 14); i++) {
     if (steps[i].enter === ev.area) { idx = i + 1; api.quiet({ guideStep: idx }); render(); return; }
