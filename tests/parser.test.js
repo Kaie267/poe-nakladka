@@ -36,3 +36,6 @@ const adv = parseItem(S.advanced);
 assert.equal(adv.mods[1].tier, 2); assert.equal(adv.mods[1].affix, 'prefix');
 assert.equal(adv.mods[2].tier, 1); assert.equal(adv.mods[2].affix, 'suffix');
 console.log('tiers: OK');
+const bow = parseItem('Item Class: Bows\nRarity: Rare\nX\nThicket Bow\n--------\nQuality: +10% (augmented)\nPhysical Damage: 50-150 (augmented)\nAttacks per Second: 1.50\n--------\nItem Level: 84\n--------\n+30 to Dexterity');
+assert.equal(Math.round(bow.dps.pdps), 150); assert.equal(bow.mods.length, 1);
+console.log('dps: OK');

@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld('api', {
   updateRestart: () => inv('update:restart'),
   version: () => inv('version'),
   errors: () => inv('errors'),
+  backupExport: () => inv('backup:export'),
+  backupImport: () => inv('backup:import'),
   filterList: () => inv('filter:list'),
   filterMake: () => inv('filter:make'),
   filterFolder: () => inv('filter:folder'),

@@ -121,6 +121,17 @@ function parseItem(text) {
     item.mods = item.mods.filter(m => !(m.nums.length === 0 && /[.!?,]$/.test(m.text)));
   }
 
+  // DPS broni (jak w Awakened PoE Trade): fizyczny, żywiołowy i chaos, z jakością.
+  const pr = item.properties;
+  const aps = parseFloat(pr['Attacks per Second']);
+  if (aps) {
+    const avg = str => (String(str || '').match(/(\d+)-(\d+)/g) || []).reduce((a, r) => { const [x, y] = r.split('-').map(Number); return a + (x + y) / 2; }, 0);
+    const phys = avg(pr['Physical Damage']), ele = avg(pr['Elemental Damage']), chaos = avg(pr['Chaos Damage']);
+    const q = item.quality || 0;
+    // pDPS z jakością 20% (jak liczą sklepy): mnożymy przez (100+20)/(100+obecna jakość)
+    const q20 = q < 20 ? (120 / (100 + q)) : 1;
+    item.dps = { pdps: phys * aps, edps: ele * aps, cdps: chaos * aps, total: (phys + ele + chaos) * aps, pdps20: phys * aps * q20, aps, crit: parseFloat(pr['Critical Strike Chance']) || null };
+  }
   item.isMap = item.itemClass === 'Maps' || / Map$/.test(item.baseType || '');
   // Magiczne przedmioty mają jedną linię nazwy z afiksami ("Fecund Dunes Map of Exposure");
   // dokładną bazę dopasowujemy później po liście nazw z poe.ninja.

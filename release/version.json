@@ -1,1 +1,1 @@
-{ "version": "3.1.1", "size": 594166, "minBase": "2.0.0", "notes": "Poradnik: wybór aktu z listy w pasku i automatyczne odnajdywanie kroku w całej trasie po wejściu do strefy." }
+{ "version": "3.2.0", "size": 597366, "minBase": "2.0.0", "notes": "DPS broni w wycenie (fizyczny, żywiołowy, chaos, z 20% quality, APS, kryt). Kopia ustawień do pliku i wczytywanie (zakładka Aktualizacje)." }

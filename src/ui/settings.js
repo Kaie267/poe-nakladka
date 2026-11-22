@@ -350,6 +350,8 @@ async function loadUpdate() {
 }
 $('updCheck').onclick = async () => { $('upd').textContent = 'Sprawdzam…'; await api.updateCheck(); loadUpdate(); };
 $('updRestart').onclick = () => api.updateRestart();
+$('bkExp').onclick = async () => { const r = await api.backupExport(); if (r) $('bkSt').textContent = 'Zapisano: ' + r; };
+$('bkImp').onclick = async () => { const r = await api.backupImport(); if (r === true) location.reload(); else if (r && r.error) $('bkSt').textContent = 'Błąd: ' + r.error; };
 api.on('update', loadUpdate);
 
 // --- wygląd ---

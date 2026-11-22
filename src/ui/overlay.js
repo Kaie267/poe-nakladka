@@ -313,6 +313,7 @@ function render() {
         <div class="hd"><div class="name">${esc(it.name)}</div><div class="sub">${esc(sub)}</div></div>
         <div class="hb"><button class="star ${S.watched ? 'on' : ''}" id="star" title="${S.watched ? 'Usuń z obserwowanych' : 'Obserwuj cenę'}">★</button><button class="x" id="x">×</button></div></header>
       ${priceBlock()}
+      ${it.dps ? `<div class="dps"><span>DPS <b class="num">${Math.round(it.dps.total)}</b></span><span>fiz. <b class="num">${Math.round(it.dps.pdps)}</b>${it.dps.pdps20 > it.dps.pdps + 1 ? ` <i>(${Math.round(it.dps.pdps20)} z 20% q)</i>` : ''}</span>${it.dps.edps ? `<span>żyw. <b class="num">${Math.round(it.dps.edps)}</b></span>` : ''}${it.dps.cdps ? `<span>chaos <b class="num">${Math.round(it.dps.cdps)}</b></span>` : ''}<span>APS <b class="num">${it.dps.aps}</b></span>${it.dps.crit ? `<span>kryt <b class="num">${it.dps.crit}%</b></span>` : ''}</div>` : ''}
       ${baseBlock()}
       ${showMode ? `<div class="mode"><label><input type="radio" name="mode" value="q" ${S.opts.broad ? '' : 'checked'}> Szybka cena</label><label><input type="radio" name="mode" value="b" ${S.opts.broad ? 'checked' : ''}> Szeroko (−10%)</label></div>` : ''}
       ${it.isMap ? mapBlock() : ''}

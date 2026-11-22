@@ -756,6 +756,18 @@ ipcMain.handle('update:check', () => updater.check());
 ipcMain.handle('update:restart', () => restart());
 ipcMain.handle('version', () => VERSION);
 ipcMain.handle('errors', () => errLog);
+ipcMain.handle('backup:export', async () => {
+  const r = await dialog.showSaveDialog(W.settings, { title: 'Zapisz kopię ustawień', defaultPath: 'nakladka-poe-ustawienia.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
+  if (r.canceled) return false;
+  const { poesessid, ...safe } = settings.get(); // bez danych logowania
+  fs.writeFileSync(r.filePath, JSON.stringify(safe, null, 2));
+  return r.filePath;
+});
+ipcMain.handle('backup:import', async () => {
+  const r = await dialog.showOpenDialog(W.settings, { title: 'Wczytaj kopię ustawień', filters: [{ name: 'JSON', extensions: ['json'] }], properties: ['openFile'] });
+  if (r.canceled) return false;
+  try { const d = JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8')); settings.set(d); registerHotkeys(); return true; } catch (e) { return { error: e.message }; }
+});
 ipcMain.handle('filter:list', () => ({ dir: LF.filterDir(app.getPath('documents')), files: LF.listFilters(LF.filterDir(app.getPath('documents'))), last: lastFilter }));
 ipcMain.handle('filter:make', async () => { try { return await makeFilter(); } catch (e) { logErr('filtr', e); return { error: e.message }; } });
 ipcMain.handle('filter:folder', () => shell.openPath(LF.filterDir(app.getPath('documents'))));
