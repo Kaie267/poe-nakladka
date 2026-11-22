@@ -260,9 +260,23 @@ function pushHud() {
 
 // ---------- czat ----------
 async function sendChat(text) {
+  const prev = clipboard.readText();
   clipboard.writeText(text);
   const r = await keys.chat();
+  setTimeout(() => clipboard.writeText(prev), 400); // przywróć schowek gracza
   return r !== 'nopoe';
+}
+
+// Podświetlenie w stashu przedmiotu, o który pyta kupujący (jak w Awakened PoE Trade).
+let hlTimer = null, hlShownByUs = false;
+function stashHighlight(t) {
+  if (!t || t.left == null || t.top == null) return;
+  const known = stashData && stashData.tabs && stashData.tabs.find(x => x.name === t.tab);
+  const quad = known ? known.quad : (t.left > 12 || t.top > 12);
+  if (!W.stash.isVisible()) { hlShownByUs = true; W.stash.showInactive(); }
+  send('stash', 'highlight', { tab: t.tab, left: t.left, top: t.top, quad, item: t.item, rect: settings.get().stashRect });
+  clearTimeout(hlTimer);
+  hlTimer = setTimeout(() => { send('stash', 'highlight', null); if (hlShownByUs) { W.stash.hide(); hlShownByUs = false; } }, 90 * 1000);
 }
 
 // ---------- stash ----------
@@ -324,6 +338,7 @@ function scheduleStash() {
   if (m > 0) stashTimer = setInterval(() => { if (settings.get().account) refreshStash(); }, Math.max(10, m) * 60000);
 }
 function toggleStash() {
+  hlShownByUs = false;
   if (W.stash.isVisible()) { W.stash.hide(); return; }
   W.stash.showInactive();
   if (!stashData) stashData = settings.loadCache('stash', 7 * 24 * 3600 * 1000);
@@ -593,6 +608,7 @@ app.whenReady().then(async () => {
     if (ev.kind === 'entered' && /Aspirants' Plaza/i.test(ev.area) && settings.get().labAuto) toggleLab(true);
     if (ev.kind === 'level') { charLevel = ev.level; settings.quiet({ charLevel }); plZone(); }
     if (ev.kind === 'entered') { lastArea = ev.area; plZone(); }
+    if (ev.kind === 'from' && ev.trade && ev.trade.left != null && settings.get().stashHighlight !== false) stashHighlight(ev.trade);
     send('notify', 'log', ev);
     send('guide', 'log', ev);
     sess.onLog(ev);
@@ -736,6 +752,7 @@ ipcMain.handle('watch:prices', async () => {
   return { list: out, divine: await ninja.divinePrice(), icons: await ninja.getIcons() };
 });
 ipcMain.handle('stash:history', () => stashHistory);
+ipcMain.handle('stash:highlight', (_e, t) => stashHighlight(t));
 ipcMain.handle('stash:ingame', () => { if (!W.stash.isVisible()) toggleStash(); });
 ipcMain.handle('stash:hide-item', (_e, name, hide) => {
   const set = new Set(settings.get().stashHidden || []);

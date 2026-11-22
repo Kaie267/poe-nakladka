@@ -50,7 +50,7 @@ while ($true) {
       if (-not [K]::FocusPoe()) { $out = 'nopoe' } else {
         Start-Sleep -Milliseconds 60
         [K]::Tap(0x0D); Start-Sleep -Milliseconds 40
-        [K]::Down(0x11); [K]::Tap(0x56); [K]::Up(0x11); Start-Sleep -Milliseconds 40
+        [K]::Down(0x11); [K]::Tap(0x41); [K]::Tap(0x56); [K]::Up(0x11); Start-Sleep -Milliseconds 40
         [K]::Tap(0x0D)
       }
     }

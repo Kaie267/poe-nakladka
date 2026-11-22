@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('api', {
   watchRemove: i => inv('watch:remove', i),
   watchPrices: () => inv('watch:prices'),
   stashHistory: () => inv('stash:history'),
+  stashHighlight: t => inv('stash:highlight', t),
   stashIngame: () => inv('stash:ingame'),
   stashHideItem: (n, h) => inv('stash:hide-item', n, h),
   marketInfo: () => inv('market:info'),

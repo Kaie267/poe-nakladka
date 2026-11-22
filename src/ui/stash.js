@@ -6,15 +6,17 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 10 ? n.toFixed(0) : n.toFixed(1);
 
 let icons = {};
+let hl = null;
 let data = null, divine = null, rect = null, tab = null, cal = false, threshold = 5, status = '';
 
 // Domyślna pozycja siatki stasha (skaluje się z wysokością ekranu, jak w grze).
 function defaultRect() {
-  const H = window.innerHeight;
+  const H = window.innerHeight || window.screen.height || 1080;
   return { x: Math.round(H * 0.0148), y: Math.round(H * 0.1185), w: Math.round(H * 0.585), h: Math.round(H * 0.585) };
 }
 
-api.getSettings().then(s => { threshold = s.vendorThreshold; rect = s.stashRect || defaultRect(); layout(); });
+api.getSettings().then(s => { threshold = s.vendorThreshold; rect = s.stashRect && s.stashRect.w > 50 ? s.stashRect : defaultRect(); layout(); });
+api.on('highlight', h => { hl = h; if (h && h.rect) rect = h.rect; if (!rect || !(rect.w > 50)) rect = defaultRect(); layout(); });
 api.on('stash', d => {
   if (d.rect !== undefined) rect = d.rect || rect || defaultRect();
   if (d.divine) divine = d.divine;
@@ -39,7 +41,23 @@ function layout() {
   renderBar();
 }
 
+function renderHighlight() {
+  frame.querySelectorAll('.hl').forEach(e => e.remove());
+  if (!hl || cal) return;
+  const n = hl.quad ? 24 : 12;
+  const cw = rect.w / n, ch = rect.h / n;
+  const el = document.createElement('div');
+  el.className = 'hl';
+  Object.assign(el.style, { left: (hl.left - 1) * cw + 'px', top: (hl.top - 1) * ch + 'px', width: cw + 'px', height: ch + 'px' });
+  const lab = document.createElement('div');
+  lab.className = 'hll';
+  lab.textContent = `${hl.item || ''} · zakładka „${hl.tab || ''}”`;
+  el.appendChild(lab);
+  frame.appendChild(el);
+}
+
 function renderCells() {
+  renderHighlight();
   frame.querySelectorAll('.cell').forEach(e => e.remove());
   if (cal || !data || !tab) return;
   const t = data.tabs.find(x => x.name === tab);
@@ -64,6 +82,7 @@ function renderCells() {
 
 function renderBar() {
   if (!rect) return;
+  bar.style.display = hl && !data && !cal ? 'none' : '';
   bar.style.left = rect.x + 'px';
   bar.style.top = Math.max(0, rect.y - 36) + 'px';
   if (cal) {

@@ -44,7 +44,7 @@ setInterval(() => {
 }, 30000);
 
 const ACTIONS = {
-  sell: [['Zaproś', c => `/invite ${c.name}`], ['Handel', c => `/tradewith ${c.name}`], ['Chwila', c => `@${c.name} ${cfg.busyMessage}`],
+  sell: [['Pokaż w stashu', c => ({ highlight: c.trade })], ['Zaproś', c => `/invite ${c.name}`], ['Handel', c => `/tradewith ${c.name}`], ['Chwila', c => `@${c.name} ${cfg.busyMessage}`],
     ['Dzięki', c => `@${c.name} ${cfg.thanksMessage}`], ['Wyrzuć', c => `/kick ${c.name}`]],
   buy: [['Do niego', c => `/hideout ${c.name}`], ['Handel', c => `/tradewith ${c.name}`], ['Dzięki', c => `@${c.name} ${cfg.thanksMessage}`], ['Wróć', () => '/hideout']],
   plain: [['Zaproś', c => `/invite ${c.name}`], ['Odpisz: chwila', c => `@${c.name} ${cfg.busyMessage}`]],
@@ -76,7 +76,9 @@ function render() {
   }).join('');
   list.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const c = cards.find(k => k.id === +b.dataset.c);
-    if (c) api.chat(ACTIONS[c.kind][+b.dataset.a][1](c));
+    if (!c) return;
+    const act = ACTIONS[c.kind][+b.dataset.a][1](c);
+    if (act && act.highlight) api.stashHighlight(act.highlight); else api.chat(act);
   });
   list.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const c = cards.find(k => k.id === +b.dataset.w); if (c) api.chat(c.live.whisper); });
   list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { const c = cards.find(k => k.id === +b.dataset.u); if (c) api.liveOpen(c.live.url); });

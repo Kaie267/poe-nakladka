@@ -67,6 +67,7 @@ const DEFAULTS = {
   stashAuto: 30,             // co ile minut odświeżać wartość stasha (0 = ręcznie)            // {x, y, w, h} — ramka siatki stasha na ekranie
   hudVisible: true,
   buyerSound: true,
+  stashHighlight: true,      // podświetl w stashu przedmiot z szeptu kupującego
   commands: [
     { key: 'F5', text: '/hideout' },
     { key: 'F6', text: '/kingsmarch' },
