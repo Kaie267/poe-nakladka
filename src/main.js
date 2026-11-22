@@ -171,7 +171,7 @@ async function readItemFromGame(advanced) {
   return text;
 }
 
-async function priceCheck(advanced) {
+async function priceCheck(advanced, compact) {
   const text = await readItemFromGame(advanced);
   const item = parseItem(text);
   placeOverlay();
@@ -190,7 +190,7 @@ async function priceCheck(advanced) {
   const goodBase = isGearItem && item.rarity !== 'Unique' && item.ilvl >= 84 && (item.influences.length || item.fractured || item.synthesised || item.ilvl >= 86)
     ? [item.ilvl ? `ilvl ${item.ilvl}` : null, ...item.influences, item.fractured ? 'fractured' : null, item.synthesised ? 'synthesised' : null].filter(Boolean) : null;
   send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, mapGoal: s.mapGoal, counting: counting.on, tradeStatus: s.tradeStatus,
-    league: s.league, watched, explained, profile: s.buildProfile, buildName: s.buildName, compare, gaps, goodBase, undercut: s.listUndercut ?? 5, autoCopy: s.autoCopyNote !== false });
+    league: s.league, compact: !!compact || !!s.priceCompact, watched, explained, profile: s.buildProfile, buildName: s.buildName, compare, gaps, goodBase, undercut: s.listUndercut ?? 5, autoCopy: s.autoCopyNote !== false });
   runPricing(item).catch(e => send('overlay', 'ninja', { error: e.message }));
 }
 
@@ -496,6 +496,7 @@ function registerHotkeys() {
   const reg = (acc, fn) => { if (!acc) return; try { globalShortcut.register(acc, fn); } catch { /* zły skrót */ } };
   reg(h.priceCheck, () => priceCheck(false));
   reg(h.priceCheckAdvanced, () => priceCheck(true));
+  reg(h.priceCheckCompact, () => priceCheck(false, true));
   reg(h.market, () => toggleMarket());
   reg(h.settings, () => openSettings());
   reg(h.guide, toggleActiveGuide);
@@ -762,6 +763,7 @@ ipcMain.handle('map:advise', async (_e, text) => {
   try {
     const s = settings.get();
     const r = adviseMap(text, { danger: s.mapDanger, goal: s.mapGoal, profile: s.buildProfile });
+    if (r.item) { try { ninja.setLeague(s.league); r.threads = (await ninja.load('exchange', 'Thread')).filter(t => t.chaos != null).sort((a, b) => b.chaos - a.chaos).map(t => ({ name: t.name, chaos: t.chaos, change: t.change, icon: t.icon })); } catch { /* */ } }
     if (r.item) { ninja.setLeague(s.league); try { const p = await ninja.priceItem(r.item); r.price = p && p.price ? p.price.chaos : null; } catch { /* */ } }
     return r;
   } catch (e) { logErr('mapa', e); return { error: e.message }; }

@@ -6,7 +6,7 @@
 const BASE = 'https://poe.ninja/poe1/api/economy';
 const TTL = 15 * 60 * 1000;
 
-const EXCHANGE_TYPES = ['Currency', 'Fragment', 'Scarab', 'DivinationCard', 'Essence', 'Fossil', 'Resonator', 'Oil',
+const EXCHANGE_TYPES = ['Currency', 'Fragment', 'Thread', 'Scarab', 'DivinationCard', 'Essence', 'Fossil', 'Resonator', 'Oil',
   'DeliriumOrb', 'Omen', 'Tattoo', 'Runegraft', 'AllflameEmber', 'Artifact', 'Astrolabe', 'DjinnCoin'];
 
 const UNIQUE_BY_CLASS = {
@@ -167,7 +167,7 @@ class Ninja {
     const cls = item.itemClass || '';
     const byName = name => l => norm(l.name) === norm(name);
 
-    if (r === 'Currency' || /Currency|Fragment|Scarab|Essence|Fossil|Resonator|Oil|Omen|Tattoo|Incubator|Delirium|Map Fragments|Misc Map Items|Atlas Upgrade/.test(cls)) {
+    if (r === 'Currency' || /Currency|Fragment|Thread|Scarab|Essence|Fossil|Resonator|Oil|Omen|Tattoo|Incubator|Delirium|Map Fragments|Misc Map Items|Atlas Upgrade/.test(cls)) {
       const list = [['currency', 'Currency'], ['currency', 'Fragment'], ...EXCHANGE_TYPES.map(t => ['exchange', t]), ['item', 'Incubator'], ['item', 'Vial'], ['item', 'Wombgift']];
       const hits = await this.findIn(list, byName(item.name));
       return hits.length ? { price: hits[0], matches: hits } : null;

@@ -1,1 +1,1 @@
-{ "version": "3.0.0", "size": 589930, "minBase": "2.0.0", "notes": "Nowa zakładka Doradca map (wklej mapę — ocena i czym ją przygotować). Odświeżanie listy filtrów. Loot filtr odświeża się sam także po restarcie. Poprawki i testy całej aplikacji." }
+{ "version": "3.1.0", "size": 593131, "minBase": "2.0.0", "notes": "Kompaktowa wycena (Ctrl+Shift+D albo zawsze — opcja w Ogólne). Ceny Threadów z poe.ninja: w wycenie, loot filtrze i Doradcy map." }

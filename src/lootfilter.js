@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const EX_TYPES = ['Currency', 'Fragment', 'DivinationCard', 'Essence', 'Fossil', 'Resonator', 'Oil', 'DeliriumOrb', 'Omen', 'Tattoo', 'Runegraft', 'AllflameEmber', 'Artifact', 'Astrolabe', 'DjinnCoin'];
+const EX_TYPES = ['Currency', 'Fragment', 'Thread', 'DivinationCard', 'Essence', 'Fossil', 'Resonator', 'Oil', 'DeliriumOrb', 'Omen', 'Tattoo', 'Runegraft', 'AllflameEmber', 'Artifact', 'Astrolabe', 'DjinnCoin'];
 const UNIQUE_TYPES = ['UniqueWeapon', 'UniqueArmour', 'UniqueAccessory', 'UniqueFlask', 'UniqueJewel'];
 
 const q = s => `"${String(s).replace(/"/g, '')}"`;

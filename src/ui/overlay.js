@@ -287,6 +287,19 @@ function links(it) {
 function render() {
   if (S.error) {
     card.innerHTML = `<header><div class="hd"><div class="name">Nakładka PoE</div><div class="sub">${esc(S.error)}</div></div><div class="hb"><button class="x" id="x">×</button></div></header>`;
+  } else if (S.item && S.compact) {
+    // Kompaktowe okienko: nazwa, cena, werdykt — do szybkiego sortowania lootu.
+    const it = S.item;
+    const p = S.ninja && S.ninja.price;
+    let unit = p ? p.chaos : null;
+    if (unit == null) { const ex = exchangeUnit(); if (ex && ex.have === 'chaos') unit = ex.unit; }
+    if (unit == null) { const e = tradeEstimate(); if (e) unit = e.est; }
+    const total = unit != null ? unit * (it.stack || 1) : null;
+    const loading = S.ninjaLoading || (S.trade && S.trade.loading) || (S.exchange && S.exchange.loading);
+    const big = total == null ? (loading ? '<span class="status">liczę…</span>' : '<span class="nop">—</span>') : S.divine && total >= S.divine ? `${fmt(total / S.divine)} ${icon('divine', 'bi')}` : `${fmt(total)} ${icon('chaos', 'bi')}`;
+    const verdict = total != null ? (total >= S.threshold ? '<span class="verdict v-sell">SPRZEDAJ</span>' : '<span class="verdict v-vendor">WENDOR</span>') : (loading ? '' : '<span class="verdict v-unknown">BRAK CENY</span>');
+    const rcls = 'r-' + String(it.rarity).split(' ')[0];
+    card.innerHTML = `<div class="compact ${rcls}"><div class="cn"><div class="name">${esc(it.name)}</div>${it.stack > 1 ? `<div class="sub">× ${it.stack}</div>` : ''}</div><div class="big num">${big}</div>${verdict}</div>`;
   } else if (S.item) {
     const it = S.item;
     const rcls = 'r-' + String(it.rarity).split(' ')[0];

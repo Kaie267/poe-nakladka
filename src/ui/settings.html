@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Nakładka PoE</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://web.poecdn.com data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://web.poecdn.com https://poe.ninja data:">
 <link rel="stylesheet" href="base.css">
 <style>
   html, body { background: var(--bg); user-select: text; height: 100%; }
@@ -139,6 +139,8 @@
       <div class="row"><span>Pasek u góry ekranu</span><input id="hudVisible" type="checkbox"></div>
       <div class="row"><span>Cena wystawienia (% poniżej rynku)</span><input id="listUndercut" type="number" min="0" max="50"></div>
       <div class="row"><span>Notka ~price od razu w schowku</span><input id="autoCopyNote" type="checkbox"></div>
+      <div class="row"><span>Zawsze kompaktowa wycena</span><input id="priceCompact" type="checkbox"></div>
+      <div class="hint">Sama nazwa, cena i werdykt — do szybkiego sortowania lootu. Pełne okienko zawsze pod Ctrl+Alt+D.</div>
       <div class="row"><span>Alert ceny obserwowanych (%)</span><input id="watchAlertPct" type="number" min="5" max="200"></div>
       <h2>Wygląd nakładki</h2>
       <div class="row"><span>Rozmiar</span><div class="inline"><input id="uiScale" type="range" min="0.8" max="1.4" step="0.05"><span id="uiScaleV" class="muted" style="width:44px"></span></div></div>
@@ -154,6 +156,7 @@
       <p class="lead">Format jak „Ctrl+D”, „Ctrl+Shift+F”, „F5”. Skróty działają tylko, gdy aktywne jest okno gry.</p>
       <div class="row"><span>Wycena</span><input data-hk="priceCheck"></div>
       <div class="row"><span>Wycena z tierami modów</span><input data-hk="priceCheckAdvanced"></div>
+      <div class="row"><span>Wycena kompaktowa</span><input data-hk="priceCheckCompact"></div>
       <div class="row"><span>Tryb liczenia</span><input data-hk="counting"></div>
       <div class="row"><span>Stash — wartość</span><input data-hk="stash"></div>
       <div class="row"><span>Market (strona trade)</span><input data-hk="market"></div>

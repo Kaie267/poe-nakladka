@@ -4,7 +4,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const FIELDS = ['watchAlertPct', 'listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
+const CHECKS = ['priceCompact', 'filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));
@@ -473,7 +473,9 @@ async function mpRun() {
       <div><span class="k">pack size</span><span class="s">${st.pack}%</span></div><div><span class="k">quant / Atlas Drops</span><span class="s">${st.quant}%</span></div>
       <div><span class="k">rarity</span><span class="s">${st.rar}%</span></div>${r.price != null ? `<div><span class="k">cena mapy</span><span class="s">${fmt(r.price)} c</span></div>` : ''}</div>
     ${r.mods.length ? `<table class="cr-mods">${r.mods.map(m => `<tr><td class="${m.bad ? 'vb' : 'vm'}">${m.bad ? '✕' : '·'}</td><td class="${m.bad ? 'vb' : ''}">${esc(m.text)}</td></tr>`).join('')}</table>` : ''}</div>
-    <h2>Co zrobić</h2>${r.steps.map(x => `<div class="cr-step"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div>`).join('')}`;
+    <h2>Co zrobić</h2>${r.steps.map(x => `<div class="cr-step"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div>`).join('')}
+    ${r.threads && r.threads.length ? `<h2>Ceny Threadów (poe.ninja)</h2><p class="muted" style="margin-top:-4px">Drogi Thread = mechanika, na którą jest popyt (zwykle opłacalna strategia); tani = tanie testowanie. Dobieraj pod swoją strategię.</p>
+      <table class="cr-mods">${r.threads.map(t => `<tr><td>${t.icon && /^https:\/\/(web\.poecdn\.com|poe\.ninja)\//.test(t.icon) ? `<img src="${esc(t.icon)}" alt="" style="width:20px;height:20px">` : ''}</td><td>${esc(t.name)}</td><td class="n" style="text-align:right">${fmt(t.chaos)} c</td><td class="n ${t.change >= 0 ? 'up' : 'down'}" style="text-align:right">${t.change != null ? (t.change >= 0 ? '+' : '') + Math.round(t.change) + '%' : ''}</td></tr>`).join('')}</table>` : ''}`;
 }
 $('mpGo').onclick = mpRun;
 $('mpPaste').onclick = async () => { try { $('mpIn').value = await navigator.clipboard.readText(); mpRun(); } catch { $('mpIn').focus(); } };

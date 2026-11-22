@@ -14,6 +14,7 @@ const DEFAULTS = {
   hotkeys: {
     priceCheck: 'Ctrl+D',
     priceCheckAdvanced: 'Ctrl+Alt+D',
+    priceCheckCompact: 'Ctrl+Shift+D',
     market: 'Ctrl+Shift+F',
     wiki: 'Ctrl+Alt+W',
     settings: 'Ctrl+Shift+O',
@@ -41,6 +42,7 @@ const DEFAULTS = {
   buildRes: null,            // odporności postaci z PoB
   listUndercut: 5,
   autoCopyNote: true,
+  priceCompact: false,       // zawsze kompaktowe okienko wyceny
   filterBase: '',            // bazowy loot filtr gracza (plik w Moje dokumenty/My Games/Path of Exile)
   filterT2: 20,
   filterT3: 5,
