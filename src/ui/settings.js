@@ -459,6 +459,24 @@ $('fMake').onclick = async () => {
   fShow(await api.filterMake());
 };
 $('fFolder').onclick = () => api.filterFolder();
+$('fRefresh').onclick = async () => { const s = await api.getSettings(); const cur = $('fBase').value; await fInit({ ...s, filterBase: cur || s.filterBase }); $('fStatus').textContent = 'Lista filtrów odświeżona.'; };
+
+// --- doradca map ---
+async function mpRun() {
+  const r = await api.mapAdvise($('mpIn').value);
+  if (r.error) { $('mpOut').innerHTML = `<p class="err">${esc(r.error)}</p>`; return; }
+  const it = r.item, st = r.stats;
+  const cls = r.nBad ? 'vb' : r.score >= 60 ? 'vg' : '';
+  $('mpOut').innerHTML = `<div class="card" style="margin-top:8px">
+    <div class="ct">${esc(it.name)} <span>${esc([it.baseType !== it.name ? it.baseType : '', it.mapTier ? 'tier ' + it.mapTier : '', it.rarity, it.corrupted ? 'skorumpowana' : ''].filter(Boolean).join(' · '))}</span></div>
+    <div class="hero" style="margin-bottom:8px"><div><span class="k">ocena</span><span class="v ${cls}">${r.score}<small>/100</small></span></div>
+      <div><span class="k">pack size</span><span class="s">${st.pack}%</span></div><div><span class="k">quant / Atlas Drops</span><span class="s">${st.quant}%</span></div>
+      <div><span class="k">rarity</span><span class="s">${st.rar}%</span></div>${r.price != null ? `<div><span class="k">cena mapy</span><span class="s">${fmt(r.price)} c</span></div>` : ''}</div>
+    ${r.mods.length ? `<table class="cr-mods">${r.mods.map(m => `<tr><td class="${m.bad ? 'vb' : 'vm'}">${m.bad ? '✕' : '·'}</td><td class="${m.bad ? 'vb' : ''}">${esc(m.text)}</td></tr>`).join('')}</table>` : ''}</div>
+    <h2>Co zrobić</h2>${r.steps.map(x => `<div class="cr-step"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div>`).join('')}`;
+}
+$('mpGo').onclick = mpRun;
+$('mpPaste').onclick = async () => { try { $('mpIn').value = await navigator.clipboard.readText(); mpRun(); } catch { $('mpIn').focus(); } };
 
 // --- doradca craftu ---
 async function crRun() {

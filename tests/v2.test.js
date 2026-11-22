@@ -104,3 +104,13 @@ const guide = require('../src/data/guide.json');
   assert.ok(white.steps[0].t.startsWith('1.'));
   console.log('craft advice: OK');
 })();
+
+(() => {
+  const assert = require('assert');
+  const { adviseMap } = require('../src/mapadvice');
+  const S = require('./samples');
+  const r = adviseMap(S.map, { danger: ['reflect'], goal: { pack: 20, quant: 60 } });
+  assert.equal(r.nBad, 1); assert.ok(r.steps[0].t.includes('Przerolluj'));
+  assert.ok(adviseMap('Item Class: Maps\nRarity: Normal\nDunes Map\n--------\nMap Tier: 16', {}).steps[0].t.includes('Alchemy'));
+  console.log('map advice: OK');
+})();

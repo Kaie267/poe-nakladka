@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('api', {
   filterMake: () => inv('filter:make'),
   filterFolder: () => inv('filter:folder'),
   craftAdvise: t => inv('craft:advise', t),
+  mapAdvise: t => inv('map:advise', t),
   sheetsList: () => inv('sheets:list'),
   sheetsFolder: () => inv('sheets:open-folder'),
   sheetsHide: () => inv('sheets:hide'),

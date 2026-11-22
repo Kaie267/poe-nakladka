@@ -1,1 +1,1 @@
-{ "version": "2.9.0", "size": 581206, "minBase": "2.0.0", "notes": "Nowa zakładka Loot filtr: reguły z aktualnych cen poe.ninja (dźwięk, wiązka, ikona na minimapie) doklejane na górę twojego filtra jako NakladkaPoE.filter, odświeżane co godzinę." }
+{ "version": "3.0.0", "size": 589930, "minBase": "2.0.0", "notes": "Nowa zakładka Doradca map (wklej mapę — ocena i czym ją przygotować). Odświeżanie listy filtrów. Loot filtr odświeża się sam także po restarcie. Poprawki i testy całej aplikacji." }

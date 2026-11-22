@@ -17,6 +17,7 @@ const { compareItem, resGaps } = require('./compare');
 const PL = require('./plinject');
 const { advise } = require('./craftadvice');
 const LF = require('./lootfilter');
+const { adviseMap } = require('./mapadvice');
 
 const PKG = require('../package.json');
 const VERSION = (global.__nakladka && global.__nakladka.version) || PKG.version;
@@ -311,6 +312,7 @@ let lastFilter = null;
 async function makeFilter() {
   const s = settings.get();
   ninja.setLeague(s.league);
+  settings.quiet({ filterMade: true });
   lastFilter = await LF.generate({ ninja, documents: app.getPath('documents'), base: s.filterBase, divine: await ninja.divinePrice(), t2: Number(s.filterT2) || 20, t3: Number(s.filterT3) || 5 });
   return lastFilter;
 }
@@ -618,7 +620,9 @@ app.whenReady().then(async () => {
   scheduleStash();
   setInterval(() => checkWatchAlerts().catch(e => logErr('alerty', e)), 15 * 60 * 1000);
   setTimeout(() => checkWatchAlerts().catch(() => {}), 60 * 1000);
-  setInterval(() => { if (settings.get().filterAuto && settings.get().filterBase !== undefined && lastFilter) makeFilter().catch(e => logErr('filtr', e)); }, 60 * 60 * 1000);
+  const filterTick = () => { if (settings.get().filterAuto && settings.get().filterMade) makeFilter().catch(e => logErr('filtr', e)); };
+  setTimeout(filterTick, 2 * 60 * 1000);
+  setInterval(filterTick, 60 * 60 * 1000);
   connectLive();
   charLevel = settings.get().charLevel || null; lastArea = settings.get().lastArea || null;
   if (settings.get().guideVisible && guideIsPL()) togglePL(true);
@@ -754,6 +758,14 @@ ipcMain.handle('errors', () => errLog);
 ipcMain.handle('filter:list', () => ({ dir: LF.filterDir(app.getPath('documents')), files: LF.listFilters(LF.filterDir(app.getPath('documents'))), last: lastFilter }));
 ipcMain.handle('filter:make', async () => { try { return await makeFilter(); } catch (e) { logErr('filtr', e); return { error: e.message }; } });
 ipcMain.handle('filter:folder', () => shell.openPath(LF.filterDir(app.getPath('documents'))));
+ipcMain.handle('map:advise', async (_e, text) => {
+  try {
+    const s = settings.get();
+    const r = adviseMap(text, { danger: s.mapDanger, goal: s.mapGoal, profile: s.buildProfile });
+    if (r.item) { ninja.setLeague(s.league); try { const p = await ninja.priceItem(r.item); r.price = p && p.price ? p.price.chaos : null; } catch { /* */ } }
+    return r;
+  } catch (e) { logErr('mapa', e); return { error: e.message }; }
+});
 ipcMain.handle('craft:advise', (_e, text) => { try { return advise(text, settings.get().buildProfile || {}); } catch (e) { logErr('craft', e); return { error: e.message }; } });
 ipcMain.handle('sheets:list', () => {
   const dir = path.join(app.getPath('userData'), 'sciagi');
