@@ -40,7 +40,11 @@ const DEFAULTS = {
   buildItems: {},            // noszone przedmioty z PoB (slot -> {name, base, mods})
   buildRes: null,            // odporności postaci z PoB
   listUndercut: 5,
-  autoCopyNote: true,        // po wycenie notka ~price od razu w schowku
+  autoCopyNote: true,
+  filterBase: '',            // bazowy loot filtr gracza (plik w Moje dokumenty/My Games/Path of Exile)
+  filterT2: 20,
+  filterT3: 5,
+  filterAuto: true,          // odświeżaj reguły co godzinę        // po wycenie notka ~price od razu w schowku
   watchAlertPct: 20,         // alert, gdy obserwowany przedmiot zmieni cenę o tyle %
   liveSearches: [],          // [{id, name, url, on}]
   labAuto: true,

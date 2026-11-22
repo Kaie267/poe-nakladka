@@ -1,1 +1,1 @@
-{ "version": "2.8.0", "size": 572039, "minBase": "2.0.0", "notes": "Po Ctrl+D notka ~price od razu w schowku (w grze: prawy klik i Ctrl+V). Alerty cen obserwowanych przedmiotów (domyślnie zmiana o 20%)." }
+{ "version": "2.9.0", "size": 581206, "minBase": "2.0.0", "notes": "Nowa zakładka Loot filtr: reguły z aktualnych cen poe.ninja (dźwięk, wiązka, ikona na minimapie) doklejane na górę twojego filtra jako NakladkaPoE.filter, odświeżane co godzinę." }

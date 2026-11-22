@@ -119,7 +119,7 @@
 <div class="wrap">
   <nav id="nav">
     <div class="brand">Nakładka PoE<small id="ver"></small></div>
-    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a><a data-s="poradniki">Poradniki</a><a data-s="doradca">Doradca craftu</a>
+    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a><a data-s="poradniki">Poradniki</a><a data-s="doradca">Doradca craftu</a><a data-s="filtr">Loot filtr</a>
     <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
   </nav>
   <main>
@@ -244,6 +244,19 @@
       <div class="cfg"><label style="flex:1">Słowa (po przecinku) <input id="rxWords" style="width:100%" placeholder="np. life, movement, +1 to level"></label>
         <label><input type="checkbox" id="rxNot"> wyklucz</label></div>
       <div class="rxout"><code id="rxOwnOut"></code><span id="rxOwnLen" class="muted"></span><button id="rxOwnCopy">Kopiuj</button></div>
+    </section>
+
+    <section id="filtr">
+      <h1>Loot filtr</h1>
+      <p class="lead">Nakładka dokleja na górę twojego filtra reguły z aktualnych cen poe.ninja: najdroższe przedmioty dostają dźwięk, wiązkę światła i ikonę na minimapie.</p>
+      <div class="row"><span>Twój obecny filtr</span><div class="inline"><select id="fBase"></select><button id="fFolder">Folder</button></div></div>
+      <div class="hint">Plik z folderu filtrów gry (np. NeverSink). Zostaje nietknięty — nakładka tworzy osobny „NakladkaPoE.filter”.</div>
+      <div class="row"><span>T2 od (chaos)</span><input id="fT2" type="number" min="1"></div>
+      <div class="row"><span>T3 od (chaos)</span><input id="fT3" type="number" min="0"></div>
+      <div class="hint">T1 = od 1 divine (czerwona wiązka, głośny dźwięk). T2 = pomarańczowa wiązka i dźwięk. T3 = wyróżnienie bez dźwięku.</div>
+      <div class="row"><span>Odświeżaj co godzinę</span><input id="filterAuto" type="checkbox"></div>
+      <p><button class="primary" id="fMake">Wygeneruj filtr</button> <span id="fStatus" class="muted"></span></p>
+      <div class="card"><b>Jak włączyć w grze</b><ol style="margin:6px 0 0;padding-left:20px;color:#cfc9b8"><li>Options → Game → Item Filter: wybierz <b>NakladkaPoE</b>.</li><li>Po każdym odświeżeniu cen kliknij w grze ikonę przeładowania filtra obok listy.</li></ol></div>
     </section>
 
     <section id="doradca">

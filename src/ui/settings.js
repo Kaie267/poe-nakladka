@@ -4,7 +4,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const FIELDS = ['watchAlertPct', 'listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
+const CHECKS = ['filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));
@@ -34,7 +34,7 @@ async function load() {
   const bp = s.buildProfile || {}; $('bpType').value = bp.type || ''; $('bpDef').value = bp.defense || ''; $('bpEl').value = bp.element || '';
   const g = s.mapGoal || { pack: 20, quant: 60 }; $('goalPack').value = g.pack; $('goalQuant').value = g.quant;
   await stashInit();
-  showLook(); renderProfileBox(s); lsRender(s); rxInit(s);
+  showLook(); renderProfileBox(s); lsRender(s); rxInit(s); fInit(s);
   $('guideSourceSel').value = s.guideSource || 'poe-leveling';
 }
 
@@ -440,6 +440,25 @@ $('rxWords').addEventListener('input', rxOwn); $('rxNot').addEventListener('chan
 function copyBtn(b, text) { navigator.clipboard.writeText(text).catch(() => api.copy(text)); const t = b.textContent; b.textContent = 'Skopiowano'; setTimeout(() => { b.textContent = t; }, 1300); }
 $('rxMapCopy').onclick = () => copyBtn($('rxMapCopy'), $('rxMapOut').textContent);
 $('rxOwnCopy').onclick = () => copyBtn($('rxOwnCopy'), $('rxOwnOut').textContent);
+
+// --- loot filtr ---
+async function fInit(s) {
+  const r = await api.filterList();
+  $('fBase').innerHTML = '<option value="">(bez bazowego filtra)</option>' + r.files.map(f => `<option ${f === s.filterBase ? 'selected' : ''}>${esc(f)}</option>`).join('');
+  $('fT2').value = s.filterT2 ?? 20; $('fT3').value = s.filterT3 ?? 5;
+  if (r.last) fShow(r.last);
+  else if (!r.files.length) $('fStatus').textContent = 'Nie znalazłem filtrów w ' + r.dir;
+}
+function fShow(r) {
+  if (r.error) { $('fStatus').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
+  $('fStatus').innerHTML = `Gotowe (${new Date(r.at).toLocaleTimeString('pl-PL')}): T1 <b>${r.counts.t1}</b> · T2 <b>${r.counts.t2}</b> · T3 <b>${r.counts.t3}</b> przedmiotów. Najdroższe: ${r.top.slice(0, 5).map(([n, c]) => `${esc(n)} (${Math.round(c)} c)`).join(', ')}`;
+}
+$('fMake').onclick = async () => {
+  await api.setSettings({ filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked });
+  $('fStatus').textContent = 'Pobieram ceny i składam filtr…';
+  fShow(await api.filterMake());
+};
+$('fFolder').onclick = () => api.filterFolder();
 
 // --- doradca craftu ---
 async function crRun() {
