@@ -128,6 +128,8 @@ for (let act = 1; act <= 10; act++) {
 }
 
 const out = path.join(__dirname, '..', 'src', 'data', 'guide.json');
-fs.writeFileSync(out, JSON.stringify({ source: 'exile-leveling (MIT) — github.com/HeartofPhos/exile-leveling', sections }));
+const areaLevels = {};
+for (const a of Object.values(areas)) if (a.name && a.level && !a.is_town_area) (areaLevels[a.name] = areaLevels[a.name] || []).includes(a.level) || areaLevels[a.name].push(a.level);
+fs.writeFileSync(out, JSON.stringify({ source: 'exile-leveling (MIT) — github.com/HeartofPhos/exile-leveling', sections, areaLevels }));
 const n = sections.reduce((a, s) => a + s.steps.length, 0);
 console.log(`guide.json: ${sections.length} sekcji, ${n} kroków, ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);

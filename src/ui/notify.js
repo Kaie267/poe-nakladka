@@ -23,6 +23,13 @@ api.on('log', ev => {
   render();
 });
 
+api.on('live', l => {
+  cards.unshift({ id: ++seq, kind: 'live', name: l.account || '', live: l, at: Date.now() });
+  cards = cards.slice(0, 8);
+  beep();
+  render();
+});
+
 setInterval(() => {
   const before = cards.length;
   cards = cards.filter(c => Date.now() - c.at < 15 * 60 * 1000);
@@ -34,10 +41,18 @@ const ACTIONS = {
     ['Dzięki', c => `@${c.name} ${cfg.thanksMessage}`], ['Wyrzuć', c => `/kick ${c.name}`]],
   buy: [['Do niego', c => `/hideout ${c.name}`], ['Handel', c => `/tradewith ${c.name}`], ['Dzięki', c => `@${c.name} ${cfg.thanksMessage}`], ['Wróć', () => '/hideout']],
   plain: [['Zaproś', c => `/invite ${c.name}`], ['Odpisz: chwila', c => `@${c.name} ${cfg.busyMessage}`]],
+  live: [],
 };
 
 function render() {
   list.innerHTML = cards.map(c => {
+    if (c.kind === 'live') {
+      const l = c.live;
+      const price = l.amount ? `${esc(l.amount)} ${esc(l.currency)}` : '';
+      return `<div class="c live" data-card="${c.id}"><div class="top"><span class="what">${esc(l.name)}</span><span class="price">${price}</span></div>
+        <div class="who">Live: ${esc(l.search)} · ${esc(l.account || '')}</div>
+        <div class="btns">${l.whisper ? `<button data-w="${c.id}">Napisz do sprzedającego</button>` : `<button data-u="${c.id}">Otwórz na trade (instant)</button>`}<button class="x" data-x="${c.id}">×</button></div></div>`;
+    }
     const t = c.trade;
     const head = t
       ? `<div class="top"><span class="what">${c.kind === 'buy' ? 'Kupujesz: ' : ''}${esc(t.item)}</span><span class="price">${esc(t.amount)} ${esc(t.currency)}</span></div>
@@ -50,6 +65,8 @@ function render() {
     const c = cards.find(k => k.id === +b.dataset.c);
     if (c) api.chat(ACTIONS[c.kind][+b.dataset.a][1](c));
   });
+  list.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const c = cards.find(k => k.id === +b.dataset.w); if (c) api.chat(c.live.whisper); });
+  list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { const c = cards.find(k => k.id === +b.dataset.u); if (c) api.liveOpen(c.live.url); });
   list.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { cards = cards.filter(k => k.id !== +b.dataset.x); render(); api.notifyMouse(false); });
   list.querySelectorAll('.c').forEach(el => {
     el.onmouseenter = () => api.notifyMouse(true);

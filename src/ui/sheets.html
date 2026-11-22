@@ -14,11 +14,22 @@
   .view { flex: 1; overflow: auto; padding: 8px; }
   .view img { max-width: 100%; display: block; margin: 0 auto; }
   pre { white-space: pre-wrap; font-family: 'Plex', sans-serif; margin: 0; line-height: 1.5; user-select: text; }
+  .bi h2 { font-size: 15px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .bi .warn { color: var(--gold); font-size: 12px; margin: 0 0 8px; }
+  .bi .src { color: var(--faint); font-size: 11px; }
+  .bi ul { margin: 0; padding-left: 18px; line-height: 1.6; }
+  table.sh { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.sh th { text-align: left; color: var(--faint); font-weight: 400; padding: 4px 6px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: #17150f; }
+  table.sh td { padding: 4px 6px; border-bottom: 1px solid #25221b; vertical-align: top; }
+  table.sh td:first-child { font-weight: 600; white-space: nowrap; }
+  table.sh td.g { color: var(--sell); }
+  .sep { width: 1px; height: 16px; background: var(--rule); margin: 0 4px; }
   .empty { color: var(--muted); padding: 20px; line-height: 1.6; }
 </style>
 </head>
 <body>
 <div id="w"><div class="bar" id="bar"></div><div class="view" id="view"></div></div>
+<script src="sheets-builtin.js"></script>
 <script src="sheets.js"></script>
 </body>
 </html>

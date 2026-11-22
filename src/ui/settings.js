@@ -3,8 +3,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-const FIELDS = ['vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods'];
+const FIELDS = ['listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
+const CHECKS = ['autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));
@@ -34,6 +34,7 @@ async function load() {
   const bp = s.buildProfile || {}; $('bpType').value = bp.type || ''; $('bpDef').value = bp.defense || ''; $('bpEl').value = bp.element || '';
   const g = s.mapGoal || { pack: 20, quant: 60 }; $('goalPack').value = g.pack; $('goalQuant').value = g.quant;
   await stashInit();
+  showLook(); renderProfileBox(s); lsRender(s); rxInit(s);
 }
 
 $('save').onclick = async () => {
@@ -42,7 +43,8 @@ $('save').onclick = async () => {
     .map(([k, ...x]) => ({ key: k.trim(), text: x.join('=').trim() }));
   const patch = { league: $('league').value, hotkeys, commands, mapDanger: $('mapDanger').value.split('\n').map(s => s.trim()).filter(Boolean) };
   for (const k of FIELDS) patch[k] = $(k).value.trim();
-  for (const k of ['vendorThreshold', 'modMinPercent']) patch[k] = Number(patch[k]) || 0;
+  for (const k of ['vendorThreshold', 'modMinPercent', 'listUndercut']) patch[k] = Number(patch[k]) || 0;
+  patch.uiScale = Number(patch.uiScale) || 1; patch.uiOpacity = Number(patch.uiOpacity) || 1;
   for (const k of CHECKS) patch[k] = $(k).checked;
   patch.buildProfile = { type: $('bpType').value, defense: $('bpDef').value, element: $('bpEl').value };
   patch.mapGoal = { pack: Number($('goalPack').value) || 0, quant: Number($('goalQuant').value) || 0 };
@@ -346,5 +348,93 @@ async function loadUpdate() {
 $('updCheck').onclick = async () => { $('upd').textContent = 'Sprawdzam…'; await api.updateCheck(); loadUpdate(); };
 $('updRestart').onclick = () => api.updateRestart();
 api.on('update', loadUpdate);
+
+// --- wygląd ---
+function showLook() { $('uiScaleV').textContent = Math.round($('uiScale').value * 100) + '%'; $('uiOpacityV').textContent = Math.round($('uiOpacity').value * 100) + '%'; }
+['uiScale', 'uiOpacity'].forEach(id => $(id).addEventListener('input', showLook));
+['uiScale', 'uiOpacity'].forEach(id => $(id).addEventListener('change', () => api.setSettings({ [id]: Number($(id).value) })));
+
+// --- profile postaci ---
+function renderProfileBox(s) {
+  const ps = s.profiles || [];
+  $('profBox').innerHTML = `Postać: <select id="profSel"><option value="">${ps.length ? '— wybierz —' : 'domyślna'}</option>${ps.map(p => `<option ${p.name === s.activeProfile ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+    <button id="profAdd" title="Zapisz obecne ustawienia buildu jako nową postać">+ postać</button>${s.activeProfile ? '<button id="profRm" title="Usuń tę postać">usuń</button>' : ''}
+    <span id="profNewBox" hidden><input id="profNewName" placeholder="nazwa postaci" style="width:130px;font-size:12px;padding:2px 5px"><button id="profNewOk">OK</button></span>`;
+  $('profSel').onchange = async () => { if (!$('profSel').value) return; await api.profileSwitch($('profSel').value); location.reload(); };
+  $('profAdd').onclick = () => { $('profNewBox').hidden = false; $('profNewName').focus(); };
+  $('profNewOk').onclick = async () => { const n = $('profNewName').value.trim(); if (!n) return; const ns = await api.profileSave(n); renderProfileBox(ns); };
+  const rm = $('profRm'); if (rm) rm.onclick = async () => { const ns = await api.profileDelete(s.activeProfile); renderProfileBox(ns); };
+}
+
+// --- live search ---
+let LS = [];
+function lsRender(s) {
+  if (s) LS = s.liveSearches || [];
+  api.liveState().then(st => {
+    $('lsList').innerHTML = LS.length ? `<table><tr><th>Nazwa</th><th>Link</th><th>Stan</th><th></th><th></th></tr>${LS.map((l, i) => `<tr>
+      <td>${esc(l.name)}</td><td class="muted" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.url)}</td>
+      <td class="muted">${l.on ? esc(st[l.id] || 'łączę…') : 'wyłączone'}</td>
+      <td><button data-ls-t="${i}">${l.on ? 'Wyłącz' : 'Włącz'}</button></td><td><button class="eye" data-ls-r="${i}">×</button></td></tr>`).join('')}</table>`
+      : '<div class="empty">Brak zapisanych wyszukiwań.</div>';
+    $('lsList').querySelectorAll('[data-ls-t]').forEach(b => b.onclick = () => { LS[+b.dataset.lsT].on = !LS[+b.dataset.lsT].on; lsSave(); });
+    $('lsList').querySelectorAll('[data-ls-r]').forEach(b => b.onclick = () => { LS.splice(+b.dataset.lsR, 1); lsSave(); });
+  });
+}
+async function lsSave() { await api.setSettings({ liveSearches: LS }); lsRender(); }
+$('lsAdd').onclick = () => {
+  const url = $('lsUrl').value.trim();
+  if (!/pathofexile\.com\/trade\/search\/[^/]+\/[A-Za-z0-9]+/.test(url)) { $('lsUrl').style.borderColor = 'var(--bad)'; return; }
+  $('lsUrl').style.borderColor = '';
+  LS.push({ id: 'l' + Date.now(), name: $('lsName').value.trim() || 'Wyszukiwanie', url, on: true });
+  $('lsName').value = ''; $('lsUrl').value = '';
+  lsSave();
+};
+$('login2').onclick = () => api.marketLogin();
+api.on('live', () => lsRender());
+
+// --- regexy ---
+const RX_MAP_DEFAULT = [
+  ['Odbicie obrażeń żywiołów', 'f elem'], ['Odbicie obrażeń fizycznych', 'f phys'], ['Brak regeneracji', 'regen'],
+  ['Mniej odzyskiwania (less recovery)', 's rec'], ['Mniej max resów', 'um res'], ['Klątwa Elemental Weakness', 'l weak'],
+  ['Klątwa Temporal Chains', 'temp'], ['Klątwa Vulnerability', 'vuln'], ['Klątwa Enfeeble', 'enfe'],
+  ['Brak leecha', 'nnot le'], ['Potwory unikają ailmentów', 'avoid'], ['Płonąca ziemia', 'burning g'],
+];
+const RX_PRESETS = [
+  ['Buty z ruchem', 'nt sp'], ['3-link', '\\w-\\w-\\w'], ['4-link', '\\w-\\w-\\w-\\w'], ['Kolory R-G-B (chromatic)', 'r-g-b|r-b-g|g-r-b|g-b-r|b-r-g|b-g-r'],
+  ['+1 do poziomu gemów', '\\+1 to level'], ['Życie (life)', 'um life'], ['Odporności', 'resista'], ['Ruch + życie', 'nt sp.*um life|um life.*nt sp'],
+];
+let RXM = [];
+function rxInit(s) {
+  const saved = (s.regexAvoid || []);
+  const edit = s.regexMapList || RX_MAP_DEFAULT.map(([a, b]) => `${a} = ${b}`).join('\n');
+  $('rxMapEdit').value = edit;
+  rxBuildList(saved);
+  $('rxPresets').innerHTML = RX_PRESETS.map(([n, r], i) => `<div class="preset"><span>${esc(n)}</span><code>${esc(r)}</code><button data-px="${i}">Kopiuj</button></div>`).join('');
+  $('rxPresets').querySelectorAll('[data-px]').forEach(b => b.onclick = () => copyBtn(b, RX_PRESETS[+b.dataset.px][1]));
+}
+function rxBuildList(selected) {
+  RXM = $('rxMapEdit').value.split('\n').map(l => l.split('=')).filter(p => p.length >= 2).map(([a, ...b]) => [a.trim(), b.join('=').trim()]);
+  $('rxMap').innerHTML = RXM.map(([n, r], i) => `<label><input type="checkbox" data-rx="${i}" ${selected.includes(r) ? 'checked' : ''}> ${esc(n)}</label>`).join('');
+  $('rxMap').querySelectorAll('[data-rx]').forEach(c => c.onchange = rxMapOut);
+  rxMapOut();
+}
+function rxMapOut() {
+  const sel = [...$('rxMap').querySelectorAll('[data-rx]:checked')].map(c => RXM[+c.dataset.rx][1]);
+  const out = sel.length ? `"!${sel.join('|')}"` : '';
+  $('rxMapOut').textContent = out;
+  $('rxMapLen').textContent = out ? `${out.length}/50` : '';
+  $('rxMapLen').style.color = out.length > 50 ? 'var(--bad)' : '';
+  api.quiet({ regexAvoid: sel });
+}
+$('rxMapEdit').addEventListener('change', () => { api.quiet({ regexMapList: $('rxMapEdit').value }); rxBuildList([...$('rxMap').querySelectorAll('[data-rx]:checked')].map(c => RXM[+c.dataset.rx][1])); });
+function rxOwn() {
+  const w = $('rxWords').value.split(',').map(x => x.trim()).filter(Boolean).map(x => x.replace(/[.*+?^${}()[\]\\]/g, '\\$&'));
+  const out = w.length ? `"${$('rxNot').checked ? '!' : ''}${w.join('|')}"` : '';
+  $('rxOwnOut').textContent = out; $('rxOwnLen').textContent = out ? `${out.length}/50` : '';
+}
+$('rxWords').addEventListener('input', rxOwn); $('rxNot').addEventListener('change', rxOwn);
+function copyBtn(b, text) { navigator.clipboard.writeText(text).catch(() => api.copy(text)); const t = b.textContent; b.textContent = 'Skopiowano'; setTimeout(() => { b.textContent = t; }, 1300); }
+$('rxMapCopy').onclick = () => copyBtn($('rxMapCopy'), $('rxMapOut').textContent);
+$('rxOwnCopy').onclick = () => copyBtn($('rxOwnCopy'), $('rxOwnOut').textContent);
 
 load().then(() => show((location.hash || '#ogolne').slice(1)));

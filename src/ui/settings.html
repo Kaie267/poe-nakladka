@@ -40,6 +40,14 @@
   .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; }
   .topbar { display: flex; justify-content: flex-end; gap: 16px; color: var(--muted); font-size: 12px; margin: -8px 0 10px; font-family: 'PlexMono', monospace; }
   .topbar b { color: var(--gold); font-weight: 500; }
+  .topbar { align-items: center; }
+  #profBox { margin-right: auto; display: flex; gap: 6px; align-items: center; font-family: 'Plex', sans-serif; }
+  #profBox select { font-size: 12px; padding: 2px 4px; }
+  #profBox button { font-size: 12px; padding: 1px 7px; }
+  .rxout { display: flex; gap: 8px; align-items: center; }
+  .rxout code { flex: 1; font-family: 'PlexMono', monospace; font-size: 13px; background: #0f0e0a; border: 1px solid var(--rule); padding: 6px 8px; word-break: break-all; color: var(--text); min-height: 30px; }
+  .preset { display: grid; grid-template-columns: 170px 1fr auto; gap: 8px; align-items: center; margin: 5px 0; }
+  .preset code { font-family: 'PlexMono', monospace; font-size: 12px; background: #0f0e0a; border: 1px solid var(--rule); padding: 4px 7px; }
   .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
   .acts { display: flex; gap: 6px; }
   .cfg { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 12px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -96,11 +104,11 @@
 <div class="wrap">
   <nav id="nav">
     <div class="brand">Nakładka PoE<small id="ver"></small></div>
-    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a>
+    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a>
     <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
   </nav>
   <main>
-    <div class="topbar" id="topbar"></div>
+    <div class="topbar"><span id="profBox"></span><span id="topbar" style="display:flex;gap:16px"></span></div>
     <section id="ogolne">
       <h1>Ogólne</h1>
       <p class="lead">Najedź na przedmiot w grze i wciśnij <kbd class="k-priceCheck">Ctrl+D</kbd>. Gra musi działać w trybie <i>Windowed Fullscreen</i>.</p>
@@ -114,6 +122,10 @@
       <div class="row"><span>Rare'y: szukaj od razu</span><input id="autoTradeRares" type="checkbox"></div>
       <div class="row"><span>Przywracaj schowek</span><input id="restoreClipboard" type="checkbox"></div>
       <div class="row"><span>Pasek u góry ekranu</span><input id="hudVisible" type="checkbox"></div>
+      <div class="row"><span>Cena wystawienia (% poniżej rynku)</span><input id="listUndercut" type="number" min="0" max="50"></div>
+      <h2>Wygląd nakładki</h2>
+      <div class="row"><span>Rozmiar</span><div class="inline"><input id="uiScale" type="range" min="0.8" max="1.4" step="0.05"><span id="uiScaleV" class="muted" style="width:44px"></span></div></div>
+      <div class="row"><span>Przezroczystość</span><div class="inline"><input id="uiOpacity" type="range" min="0.5" max="1" step="0.05"><span id="uiOpacityV" class="muted" style="width:44px"></span></div></div>
       <div class="hint">Statystyki map i tryb liczenia.</div>
       <h2>Dostęp do strony trade</h2>
       <div class="row"><span>POESESSID (opcjonalnie)</span><input id="poesessid" type="password" placeholder="tylko gdy trade odrzuca zapytania"></div>
@@ -132,6 +144,7 @@
       <div class="row"><span>Poradnik: następny krok</span><input data-hk="guideNext"></div>
       <div class="row"><span>Poradnik: poprzedni krok</span><input data-hk="guidePrev"></div>
       <div class="row"><span>poe-leveling.com</span><input data-hk="leveling"></div>
+      <div class="row"><span>Labirynt dnia</span><input data-hk="lab"></div>
       <div class="row"><span>Ściągi</span><input data-hk="sheets"></div>
       <div class="row"><span>Wiki przedmiotu</span><input data-hk="wiki"></div>
       <div class="row"><span>Okno nakładki (to okno)</span><input data-hk="app"></div>
@@ -192,6 +205,30 @@
       <div class="card"><div id="watchList"></div></div>
     </section>
 
+    <section id="live">
+      <h1>Live search</h1>
+      <p class="lead">Nowa oferta z zapisanego wyszukiwania pojawia się w okienku po prawej, z dźwiękiem i przyciskiem „Napisz do sprzedającego”. Wymaga zalogowania w oknie Market (<a id="login2">zaloguj</a>).</p>
+      <div class="cfg"><label>Nazwa <input id="lsName" placeholder="np. tani Mageblood"></label><label style="flex:1">Link <input id="lsUrl" style="width:100%" placeholder="https://www.pathofexile.com/trade/search/Covens/…"></label><button class="primary" id="lsAdd">Dodaj</button></div>
+      <div class="hint" style="margin-left:0">Skopiuj link z paska adresu strony trade po wyszukaniu. GGG pozwala na kilka aktywnych wyszukiwań naraz.</div>
+      <div class="card" style="margin-top:12px"><div id="lsList"></div></div>
+    </section>
+
+    <section id="regex">
+      <h1>Regexy</h1>
+      <p class="lead">Gotowe frazy do wklejenia w wyszukiwarkę stasha albo sprzedawcy w grze (pole „Highlight Items”). Gra przyjmuje do 50 znaków.</p>
+      <h2>Mapy — pomiń groźne mody</h2>
+      <div id="rxMap" class="checks" style="margin-bottom:10px"></div>
+      <div class="rxout"><code id="rxMapOut"></code><span id="rxMapLen" class="muted"></span><button id="rxMapCopy">Kopiuj</button></div>
+      <div class="hint" style="margin-left:0">Podświetlone zostaną mapy BEZ zaznaczonych modów. Frazy to krótkie fragmenty tekstu modów — możesz je zmienić poniżej.</div>
+      <textarea id="rxMapEdit" style="min-height:70px;margin-top:6px"></textarea>
+      <h2>Sprzedawcy i stash</h2>
+      <div id="rxPresets"></div>
+      <h2>Własny</h2>
+      <div class="cfg"><label style="flex:1">Słowa (po przecinku) <input id="rxWords" style="width:100%" placeholder="np. life, movement, +1 to level"></label>
+        <label><input type="checkbox" id="rxNot"> wyklucz</label></div>
+      <div class="rxout"><code id="rxOwnOut"></code><span id="rxOwnLen" class="muted"></span><button id="rxOwnCopy">Kopiuj</button></div>
+    </section>
+
     <section id="poradnik">
       <h1>Poradnik kampanii</h1>
       <p class="lead">Sam przechodzi do następnego kroku, gdy wchodzisz do nowej strefy. Trasa: exile-leveling (licencja MIT).</p>
@@ -199,6 +236,8 @@
       <div class="row"><span>Trasa na start ligi</span><input id="guideLeagueStart" type="checkbox"></div>
       <div class="hint">Wariant z dodatkowymi krokami opłacalnymi przy pierwszej postaci w lidze.</div>
       <div class="row"><span>Krok</span><div class="inline"><button id="guideReset">Zacznij od początku</button></div></div>
+      <div class="row"><span>Labirynt dnia automatycznie</span><input id="labAuto" type="checkbox"></div>
+      <div class="hint">Okno poelab.com otwiera się samo po wejściu do Aspirants' Plaza (ręcznie: <kbd class="k-lab"></kbd>).</div>
       <h2>Twój build</h2>
       <div class="row"><span>Typ obrażeń</span><select id="bpType"><option value="">nie wiem</option><option value="attack">ataki</option><option value="spell">czary</option><option value="minion">miniony</option><option value="dot">DoT (obrażenia z czasem)</option></select></div>
       <div class="row"><span>Obrona</span><select id="bpDef"><option value="">nie wiem</option><option value="life">życie</option><option value="es">tarcza energii (ES)</option><option value="hybrid">życie + ES</option></select></div>

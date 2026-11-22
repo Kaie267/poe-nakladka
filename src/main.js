@@ -13,6 +13,7 @@ const { Session } = require('./session');
 const { scanListed, snapshotOf } = require('./stash');
 const { decodePob } = require('./pob');
 const { explainMods } = require('./modexplain');
+const { compareItem, resGaps } = require('./compare');
 
 const PKG = require('../package.json');
 const VERSION = (global.__nakladka && global.__nakladka.version) || PKG.version;
@@ -132,7 +133,7 @@ function toggleSheets() {
   if (W.sheets && !W.sheets.isDestroyed()) { if (W.sheets.isVisible()) W.sheets.hide(); else { W.sheets.show(); W.sheets.focus(); } return; }
   W.sheets = onTop(new BrowserWindow({ ...base, frame: false, resizable: true, width: 720, height: 560, minWidth: 300, minHeight: 200 }));
   W.sheets.loadFile(UI('sheets.html'));
-  W.sheets.once('ready-to-show', () => W.sheets.show());
+  W.sheets.once('ready-to-show', () => { applyLook(); W.sheets.show(); });
 }
 
 function placeOverlay() {
@@ -171,8 +172,14 @@ async function priceCheck(advanced) {
   const s = settings.get();
   const watched = (s.watch || []).some(w => w.name === item.name && w.baseType === item.baseType);
   const explained = s.explainMods && item.mods.length && !item.isMap ? explainMods(item.mods, s.buildProfile || {}) : null;
+  const build = { items: s.buildItems, res: s.buildRes, profile: s.buildProfile };
+  const isGearItem = !['Currency', 'Divination Card', 'Gem'].includes(item.rarity) && !item.isMap;
+  const compare = isGearItem ? compareItem(item, build) : null;
+  const gaps = resGaps(s.buildRes);
+  const goodBase = isGearItem && item.rarity !== 'Unique' && item.ilvl >= 84 && (item.influences.length || item.fractured || item.synthesised || item.ilvl >= 86)
+    ? [item.ilvl ? `ilvl ${item.ilvl}` : null, ...item.influences, item.fractured ? 'fractured' : null, item.synthesised ? 'synthesised' : null].filter(Boolean) : null;
   send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, mapGoal: s.mapGoal, counting: counting.on, tradeStatus: s.tradeStatus,
-    league: s.league, watched, explained, profile: s.buildProfile, buildName: s.buildName });
+    league: s.league, watched, explained, profile: s.buildProfile, buildName: s.buildName, compare, gaps, goodBase, undercut: s.listUndercut ?? 5 });
   runPricing(item).catch(e => send('overlay', 'ninja', { error: e.message }));
 }
 
@@ -286,6 +293,107 @@ function toggleGuide() {
   settings.quiet({ guideVisible: vis });
 }
 
+// ---------- labirynt ----------
+function toggleLab(forceShow) {
+  const wa = screen.getPrimaryDisplay().workArea;
+  if (forceShow && W.lab && !W.lab.isDestroyed()) { W.lab.showInactive(); return; }
+  toggleWebWindow('lab', 'https://www.poelab.com/', { title: 'Labirynt dnia — poelab.com', width: 900, height: Math.min(900, wa.height - 80), x: wa.x + wa.width - 920, y: wa.y + 40 });
+}
+
+// ---------- live search ----------
+// Połączenia websocket ze strony trade otwieramy w ukrytym oknie na domenie pathofexile.com,
+// więc działają dokładnie jak w przeglądarce (te same ciasteczka po zalogowaniu w oknie Market).
+let liveReady = false;
+const liveState = {};
+function parseTradeUrl(u) {
+  const m = String(u || '').match(/pathofexile\.com\/trade\/search\/([^/?#]+)\/([A-Za-z0-9]+)/);
+  return m ? { league: decodeURIComponent(m[1]), id: m[2] } : null;
+}
+function ensureLiveWin() {
+  if (W.live && !W.live.isDestroyed()) return;
+  liveReady = false;
+  W.live = new BrowserWindow({ show: false, webPreferences: { session: tradeSession } });
+  W.live.webContents.on('console-message', (...args) => {
+    const msg = typeof args[0] === 'object' && args[0].message ? args[0].message : args[2];
+    if (typeof msg !== 'string' || !msg.startsWith('LIVE')) return;
+    const [kind, id, ...rest] = msg.split('|');
+    const data = rest.join('|');
+    if (kind === 'LIVEOPEN') liveState[id] = 'połączono';
+    else if (kind === 'LIVECLOSE') { liveState[id] = 'rozłączono (' + data + ')'; setTimeout(() => connectLive(), 30000); }
+    else if (kind === 'LIVEERR') liveState[id] = 'błąd połączenia — zaloguj się w oknie Market';
+    else if (kind === 'LIVE') onLiveMessage(id, data);
+    send('settings', 'live', liveState);
+  });
+  W.live.webContents.on('did-finish-load', () => { liveReady = true; connectLive(); });
+  W.live.loadURL('https://www.pathofexile.com/trade/about');
+}
+function connectLive() {
+  const list = (settings.get().liveSearches || []).filter(x => x.on);
+  if (!list.length) { if (W.live && !W.live.isDestroyed()) W.live.destroy(); return; }
+  ensureLiveWin();
+  if (!liveReady) return;
+  for (const ls of list) {
+    const t = parseTradeUrl(ls.url);
+    if (!t) { liveState[ls.id] = 'zły link'; continue; }
+    const url = `wss://www.pathofexile.com/api/trade/live/${encodeURIComponent(t.league)}/${t.id}`;
+    W.live.webContents.executeJavaScript(`(function(){window.__live=window.__live||{};const id=${JSON.stringify(ls.id)};const o=window.__live[id];
+      if(o&&o.readyState<2)return;try{const ws=new WebSocket(${JSON.stringify(url)});window.__live[id]=ws;
+      ws.onopen=()=>console.log('LIVEOPEN|'+id);ws.onmessage=e=>console.log('LIVE|'+id+'|'+e.data);
+      ws.onerror=()=>console.log('LIVEERR|'+id);ws.onclose=e=>console.log('LIVECLOSE|'+id+'|'+e.code);}catch(e){console.log('LIVEERR|'+id);}})()`).catch(() => {});
+  }
+  // Zamknij połączenia wyłączonych wyszukiwań.
+  const on = JSON.stringify(list.map(x => x.id));
+  W.live.webContents.executeJavaScript(`(function(){const on=${on};for(const k in (window.__live||{}))if(!on.includes(k)){try{window.__live[k].close()}catch(e){};delete window.__live[k];}})()`).catch(() => {});
+}
+async function onLiveMessage(id, data) {
+  let j; try { j = JSON.parse(data); } catch { return; }
+  if (!j.new || !j.new.length) return;
+  const ls = (settings.get().liveSearches || []).find(x => x.id === id);
+  if (!ls) return;
+  const t = parseTradeUrl(ls.url);
+  try {
+    const rates = await ninja.getTradeRates();
+    const f = await trade.call('fetch', 'GET', `/api/trade/fetch/${j.new.slice(0, 10).join(',')}?query=${t.id}`);
+    for (const r of (f.result || []).filter(Boolean)) {
+      const p = (r.listing && r.listing.price) || {};
+      send('notify', 'live', {
+        search: ls.name, url: `https://www.pathofexile.com/trade/search/${encodeURIComponent(t.league)}/${t.id}`,
+        name: [r.item && r.item.name, r.item && r.item.typeLine].filter(Boolean).join(' '), icon: r.item && r.item.icon,
+        amount: p.amount, currency: p.currency, chaos: p.amount && rates[p.currency] ? p.amount * rates[p.currency] : null,
+        account: r.listing && r.listing.account && r.listing.account.name, whisper: r.listing && r.listing.whisper || null,
+      });
+    }
+  } catch { /* limit albo błąd — następna oferta przyjdzie normalnie */ }
+}
+
+// ---------- profile postaci ----------
+const PROFILE_KEYS = ['buildGems', 'buildName', 'buildProfile', 'buildItems', 'buildRes', 'vendorThreshold', 'guideStep', 'guideClass', 'guideLeagueStart', 'watch', 'stashProfiles', 'stashProfile'];
+function snapshotProfile() { const s = settings.get(); const d = {}; for (const k of PROFILE_KEYS) d[k] = s[k]; return d; }
+function switchProfile(name) {
+  const s = settings.get();
+  const profiles = (s.profiles || []).map(p => p.name === s.activeProfile ? { ...p, data: snapshotProfile() } : p);
+  const target = profiles.find(p => p.name === name);
+  settings.quiet({ profiles, activeProfile: name, ...(target ? target.data : {}) });
+  send('guide', 'settings', settings.get());
+  return settings.get();
+}
+
+// ---------- wygląd ----------
+function applyLook() {
+  const s = settings.get();
+  const z = Math.max(0.7, Math.min(1.6, Number(s.uiScale) || 1));
+  const o = Math.max(0.5, Math.min(1, Number(s.uiOpacity) || 1));
+  for (const k of ['overlay', 'notify', 'guide', 'hud', 'sheets']) {
+    const w = W[k]; if (!w || w.isDestroyed()) continue;
+    w.webContents.setZoomFactor(z);
+    w.setOpacity(o);
+  }
+  if (W.overlay) W.overlay.setSize(Math.round(420 * z), W.overlay.getSize()[1]);
+  if (W.guide) W.guide.setSize(Math.round(430 * z), W.guide.getSize()[1]);
+  if (W.notify) W.notify.setSize(Math.round(360 * z), Math.round(420 * z));
+  if (W.hud) W.hud.setSize(Math.round(760 * z), Math.round(34 * z));
+}
+
 // ---------- skróty ----------
 function registerHotkeys() {
   globalShortcut.unregisterAll();
@@ -304,6 +412,7 @@ function registerHotkeys() {
   reg(h.counting, toggleCounting);
   reg(h.sheets, toggleSheets);
   reg(h.app, toggleApp);
+  reg(h.lab, () => toggleLab());
   reg(h.wiki, async () => {
     const it = parseItem(await readItemFromGame(false));
     if (!it) return;
@@ -349,6 +458,7 @@ function makeTray() {
     { label: 'poe-leveling.com', click: toggleLeveling },
     { label: 'Stash — wartość', click: toggleStash },
     { label: 'Ściągi', click: toggleSheets },
+    { label: 'Labirynt dnia', click: () => toggleLab() },
     { type: 'separator' },
     ...(updater && updater.status.state === 'ready' ? [{ label: `Uruchom ponownie (wersja ${updater.status.latest})`, click: restart }] : []),
     { label: `Wersja ${VERSION}`, enabled: false },
@@ -386,6 +496,7 @@ app.whenReady().then(async () => {
 
   logw = new LogWatch();
   logw.on('event', ev => {
+    if (ev.kind === 'entered' && /Aspirants' Plaza/i.test(ev.area) && settings.get().labAuto) toggleLab(true);
     send('notify', 'log', ev);
     send('guide', 'log', ev);
     sess.onLog(ev);
@@ -412,6 +523,8 @@ app.whenReady().then(async () => {
   if (settings.get().clientLog) logw.start(settings.get().clientLog);
   try { stashHistory = JSON.parse(fs.readFileSync(histFile(), 'utf8')); } catch { stashHistory = []; }
   scheduleStash();
+  connectLive();
+  for (const k of ['overlay', 'notify', 'guide', 'hud']) W[k].webContents.once('did-finish-load', applyLook);
   focusLoop();
   if (!settings.get().league || !settings.get().clientLog) openSettings();
 });
@@ -431,6 +544,8 @@ ipcMain.handle('settings:set', (_e, patch) => {
   if (W.hud) { if (s.hudVisible) W.hud.showInactive(); else W.hud.hide(); }
   send('guide', 'settings', s);
   scheduleStash();
+  connectLive();
+  applyLook();
   return s;
 });
 ipcMain.handle('settings:quiet', (_e, patch) => settings.quiet(patch));
@@ -449,6 +564,7 @@ ipcMain.handle('open', (_e, url) => {
 ipcMain.handle('overlay:hide', () => W.overlay.hide());
 ipcMain.handle('overlay:resize', (_e, h) => { const [w] = W.overlay.getSize(); W.overlay.setSize(w, Math.max(160, Math.min(900, Math.round(h)))); });
 ipcMain.handle('chat', (_e, text) => sendChat(text));
+ipcMain.handle('copy', (_e, text) => { clipboard.writeText(String(text)); return true; });
 ipcMain.handle('mouse', (e, inside) => {
   const w = BrowserWindow.fromWebContents(e.sender);
   if (w) w.setIgnoreMouseEvents(!inside, { forward: true });
@@ -465,12 +581,29 @@ ipcMain.handle('pob:import', (_e, code) => {
     const patch = { buildGems: r.gems, buildName: [r.ascendancy || r.className, `${r.gems.length} gemów`].filter(Boolean).join(' · ') };
     if (r.className) patch.guideClass = r.className;
     if (r.profile) patch.buildProfile = r.profile;
+    if (r.items) patch.buildItems = r.items;
+    if (r.res && r.res.fire != null) patch.buildRes = r.res;
     settings.quiet(patch);
     send('guide', 'settings', settings.get());
     return { ok: true, ...r };
   } catch (e) { return { error: 'Nie udało się odczytać kodu PoB: ' + e.message }; }
 });
 ipcMain.handle('stash:refresh', () => refreshStash());
+ipcMain.handle('live:state', () => liveState);
+ipcMain.handle('live:open', (_e, url) => toggleMarket(url));
+ipcMain.handle('profile:switch', (_e, name) => switchProfile(name));
+ipcMain.handle('profile:save', (_e, name) => {
+  const s = settings.get();
+  const profiles = (s.profiles || []).filter(p => p.name !== name);
+  profiles.push({ name, data: snapshotProfile() });
+  settings.quiet({ profiles, activeProfile: name });
+  return settings.get();
+});
+ipcMain.handle('profile:delete', (_e, name) => {
+  const s = settings.get();
+  settings.quiet({ profiles: (s.profiles || []).filter(p => p.name !== name), activeProfile: s.activeProfile === name ? '' : s.activeProfile });
+  return settings.get();
+});
 ipcMain.handle('watch:toggle', () => {
   if (!currentItem) return false;
   const it = currentItem;

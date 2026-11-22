@@ -73,3 +73,21 @@ const guide = require('../src/data/guide.json');
   require('assert').ok(snap.tc['A|Ekwipunek'] > 0 && snap.tc['B|Ekwipunek'] > 0);
   console.log('stash pages: OK');
 })().catch(e => { console.error(e); process.exit(1); });
+
+// Porównanie z noszonym przedmiotem
+(() => {
+  const assert = require('assert');
+  const { compareItem, resGaps } = require('../src/compare');
+  const { parseItem } = require('../src/parser');
+  const S = require('./samples');
+  const boots = parseItem(S.advanced);
+  const build = { items: { Boots: { name: 'Old', mods: [{ text: '+60 to maximum Life' }, { text: '20% increased Movement Speed' }] } }, res: { fire: 60, cold: 60, lightning: 60, chaos: 0 }, profile: {} };
+  const c = compareItem(boots, build);
+  assert.equal(c.slot, 'Boots'); assert.equal(c.verdict, 'better');
+  assert.equal(c.resAfter.find(r => r.key === 'fire').after, 72);
+  assert.equal(resGaps(build.res).length, 3);
+  const { explainMods } = require('../src/modexplain');
+  const ex = explainMods(boots.mods, { type: 'attack', defense: 'es' });
+  assert.equal(ex[1].verdict, 'bad'); // życie przy buildzie ES
+  console.log('compare: OK');
+})();

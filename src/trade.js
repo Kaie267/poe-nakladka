@@ -213,7 +213,18 @@ class Trade {
       q.type = item.isMap ? item.baseType : item.name;
       if (item.isMap && item.mapTier) q.filters.map_filters = { filters: { map_tier: { min: item.mapTier, max: item.mapTier } } };
     } else {
-      if (opts.useBase && item.baseType) q.type = item.baseType;
+      if ((opts.useBase || opts.baseOnly) && item.baseType) q.type = item.baseType;
+      if (opts.baseOnly) {
+        // Sama baza: ilvl, influence, fractured/synthesised — bez modów.
+        if (item.ilvl) misc.ilvl = { min: item.ilvl };
+        for (const inf of item.influences || []) {
+          const key = { Shaper: 'shaper_item', Elder: 'elder_item', Crusader: 'crusader_item', Redeemer: 'redeemer_item', Hunter: 'hunter_item', Warlord: 'warlord_item' }[inf];
+          if (key) misc[key] = { option: 'true' };
+        }
+        if (item.fractured) misc.fractured_item = { option: 'true' };
+        if (item.synthesised) misc.synthesised_item = { option: 'true' };
+        opts = { ...opts, filters: [] };
+      }
       const cat = CATEGORY[item.itemClass];
       if (cat) typeFilters.category = { option: cat };
       typeFilters.rarity = { option: 'nonunique' };

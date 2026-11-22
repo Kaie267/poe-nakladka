@@ -65,6 +65,14 @@ function spark(data, change) {
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><polyline points="${pts}" fill="none" stroke="${change >= 0 ? '#8fbf6a' : '#d9694f'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 }
 
+function unitPrice() {
+  const p = S.ninja && S.ninja.price;
+  if (p && p.chaos != null) return p.chaos;
+  const ex = exchangeUnit(); if (ex && ex.have === 'chaos') return ex.unit;
+  const e = tradeEstimate(); return e ? e.est : null;
+}
+const tierBadge = t => t ? `<span class="tier t${Math.min(t, 4)}">T${t}</span>` : '';
+
 // ---------- bloki ----------
 function priceBlock() {
   const it = S.item;
@@ -140,8 +148,51 @@ function explainBlock() {
   const prof = p.type || p.defense ? `pod build: ${[TYPE[p.type], DEF[p.defense]].filter(Boolean).join(', ')}` : 'wczytaj PoB w ustawieniach, żeby oceniać pod build';
   const mark = { good: '<i class="vk good">✓</i>', mid: '<i class="vk mid">·</i>', bad: '<i class="vk bad">✕</i>' };
   return `<section><h3>Co dają mody <span>${esc(prof)}</span></h3>
-    ${ex.map(m => `<div class="ex">${mark[m.verdict]}<div><div class="mt">${esc(m.text)}${m.type !== 'explicit' ? ` <span class="ty">${esc(m.type)}</span>` : ''}</div>${m.pl ? `<div class="pl2">${esc(m.pl)}</div>` : ''}</div></div>`).join('')}
+    ${ex.map((m, i) => `<div class="ex">${mark[m.verdict]}<div><div class="mt">${tierBadge((S.item.mods[i] || {}).tier)}${esc(m.text)}${m.type !== 'explicit' ? ` <span class="ty">${esc(m.type)}</span>` : ''}</div>${m.pl ? `<div class="pl2">${esc(m.pl)}</div>` : ''}</div></div>`).join('')}
   </section>`;
+}
+
+function baseBlock() {
+  if (!S.goodBase) return '';
+  return `<div class="note good"><b>Dobra baza do craftu</b> · ${esc(S.goodBase.join(' · '))}<br><span>Nie sprzedawaj jej za grosze — <a id="baseOnly">sprawdź samą bazę na trade</a>.</span></div>`;
+}
+
+function compareBlock() {
+  const c = S.compare;
+  const gaps = S.gaps || [];
+  if (!c && !gaps.length) return '';
+  let html = '';
+  if (c) {
+    const V = { better: ['LEPSZY', 'good'], worse: ['GORSZY', 'bad'], similar: ['PODOBNY', 'mid'] }[c.verdict];
+    const chips = c.diffs.map(d => `<span class="chip ${d.v > 0 ? 'up' : 'down'}">${d.v > 0 ? '+' : ''}${fmt(d.v)}${d.unit || ''} ${esc(d.label)}</span>`).join('');
+    const res = (c.resAfter || []).map(r => {
+      const ok = r.cap == null ? r.after >= 0 : r.after >= r.cap;
+      const ch = r.after !== r.before;
+      return `<span class="rs ${ch ? (r.after > r.before ? 'up' : 'down') : ''}">${esc(r.label)} <b class="num">${r.before}${ch ? `→${r.after}` : ''}%</b>${r.cap != null ? (ok ? ' ✓' : ` <i>−${r.cap - r.after}</i>`) : ''}</span>`;
+    }).join('');
+    html += `<div class="cmp-h"><span>Zamiast: <b>${esc(c.old || 'pusty slot')}</b> <span class="muted">(${esc(c.slot)})</span></span><span class="verdict v-${V[1]}">${V[0]}</span></div>
+      ${chips ? `<div class="chips">${chips}</div>` : '<div class="status">Brak różnic w głównych statystykach.</div>'}
+      ${res ? `<div class="resrow">${res}</div>` : ''}`;
+  } else if (gaps.length) {
+    html += `<div class="status">Brakuje ci resów: ${gaps.map(g => `<b class="down">${esc(g.label)} ${g.missing}%</b>`).join(', ')}</div>`;
+  }
+  return `<section><h3>Twój build <span>${esc(S.buildName || '')}</span></h3>${html}</section>`;
+}
+
+function listBlock() {
+  const it = S.item;
+  const u = unitPrice();
+  if (u == null || it.isMap && it.rarity !== 'Unique') return '';
+  const total = u * (it.stack || 1) * (1 - (S.undercut ?? 5) / 100);
+  const div = S.divine;
+  let amount, cur;
+  if (div && total >= div) { amount = Math.round(total / div * 10) / 10; cur = 'divine'; }
+  else if (total >= 10) { amount = Math.round(total); cur = 'chaos'; }
+  else if (total >= 1) { amount = Math.round(total * 10) / 10; cur = 'chaos'; }
+  else { amount = Math.max(0.01, Math.round(total * 100) / 100); cur = 'chaos'; }
+  const note = `~price ${amount} ${cur}`;
+  return `<section class="list"><h3>Wystaw <span>${S.undercut ?? 5}% poniżej rynku${it.stack > 1 ? ', za cały stack' : ''}</span></h3>
+    <div class="lrow"><b class="num">${fmt(amount)} ${icon(cur)}</b><code>${esc(note)}</code><button id="copyNote" data-note="${esc(note)}">Kopiuj</button></div></section>`;
 }
 
 function filtersBlock() {
@@ -247,12 +298,15 @@ function render() {
         <div class="hd"><div class="name">${esc(it.name)}</div><div class="sub">${esc(sub)}</div></div>
         <div class="hb"><button class="star ${S.watched ? 'on' : ''}" id="star" title="${S.watched ? 'Usuń z obserwowanych' : 'Obserwuj cenę'}">★</button><button class="x" id="x">×</button></div></header>
       ${priceBlock()}
+      ${baseBlock()}
       ${showMode ? `<div class="mode"><label><input type="radio" name="mode" value="q" ${S.opts.broad ? '' : 'checked'}> Szybka cena</label><label><input type="radio" name="mode" value="b" ${S.opts.broad ? 'checked' : ''}> Szeroko (−10%)</label></div>` : ''}
       ${it.isMap ? mapBlock() : ''}
+      ${compareBlock()}
       ${explainBlock()}
       ${filtersBlock()}
       ${exchangeBlock()}
       ${tradeBlock()}
+      ${listBlock()}
       <div class="foot"><span>${links(it)}</span><span>${S.counting ? '<span style="color:var(--gold)">liczenie włączone</span>' : 'Esc — zamknij'}</span></div>`;
   }
   bind();
@@ -278,4 +332,7 @@ function bind() {
   if (exHave) exHave.onchange = runEx;
   if (exSt) exSt.onchange = runEx;
   card.querySelectorAll('[data-url]').forEach(a => a.onclick = () => api.open(a.dataset.url));
+  const cn = document.getElementById('copyNote');
+  if (cn) cn.onclick = async () => { await api.copy(cn.dataset.note); cn.textContent = 'Skopiowano'; setTimeout(() => { cn.textContent = 'Kopiuj'; }, 1500); };
+  const bo = document.getElementById('baseOnly'); if (bo) bo.onclick = () => api.search({ baseOnly: true, ...S.opts });
 }

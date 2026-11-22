@@ -77,6 +77,8 @@ function parseItem(text) {
       else if (line === 'Corrupted') { item.corrupted = true; consumed = true; }
       else if (line === 'Mirrored') { item.mirrored = true; consumed = true; }
       else if (line === 'Unidentified') { item.unidentified = true; consumed = true; }
+      else if (line === 'Fractured Item') { item.fractured = true; consumed = true; }
+      else if (line === 'Synthesised Item') { item.synthesised = true; consumed = true; }
       else if ((mm = line.match(/^(Shaper|Elder|Crusader|Hunter|Redeemer|Warlord|Searing Exarch|Eater of Worlds) Item$/))) { item.influences.push(mm[1]); consumed = true; }
       else if ((mm = line.match(/^(Item Quantity|Item Rarity|Monster Pack Size|More Scarabs|More Currency|More Maps|More Divination Cards|Atlas Drops|Quality \([^)]+\)):\s*\+?(-?\d+)%/))) {
         item.mapStats.push({ label: mm[1], value: +mm[2] }); consumed = true;
@@ -102,12 +104,17 @@ function parseItem(text) {
 
   if (!['Currency', 'Divination Card', 'Gem'].includes(item.rarity)) {
     for (const sec of modSections) {
+      let hdr = null; // nagłówek z Ctrl+Alt+D: { Prefix Modifier "Rotund" (Tier: 2) — Life }
       for (const raw of sec) {
+        const h = raw.match(/^\{ (?:(Prefix|Suffix|Unique|Implicit|Crafted|Fractured)[^"}]*?Modifier)?(?: "([^"]*)")?(?: \((?:Tier|Rank): (\d+)\))?/);
+        if (/^\{.*\}$/.test(raw) && h) { hdr = { affix: (h[1] || '').toLowerCase() || null, tier: h[3] ? +h[3] : null, modName: h[2] || null }; continue; }
         const l = cleanAdvanced(raw);
         if (!l || /^\(.*\)$/.test(l)) continue;
         if (/^".*"$/.test(l)) continue;
         if (/^[A-Z][A-Za-z ']+:\s/.test(l) && !/\((implicit|enchant|crafted)\)$/.test(l)) continue;
-        item.mods.push(parseModLine(l));
+        const pm = parseModLine(l);
+        if (hdr) { pm.tier = hdr.tier; pm.affix = hdr.affix; }
+        item.mods.push(pm);
       }
     }
     // Opis uniku (flavour text) zwykle nie ma cyfr i jest na końcu — odfiltruj linie bez liczb kończące się kropką

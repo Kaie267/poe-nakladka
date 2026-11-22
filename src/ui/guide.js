@@ -2,11 +2,12 @@
 const root = document.getElementById('g');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
-let data = null, steps = [], idx = 0, cfg = {};
+let data = null, steps = [], idx = 0, cfg = {}, area = null, charLevel = null;
 
 async function init() {
   data = await api.guideData();
   cfg = await api.getSettings();
+  charLevel = cfg.charLevel || null; area = cfg.lastArea || null;
   build();
   idx = Math.min(cfg.guideStep || 0, steps.length);
   render();
@@ -30,12 +31,22 @@ function move(d) {
 api.on('guide:move', move);
 api.on('settings', s => { const lsChanged = s.guideLeagueStart !== cfg.guideLeagueStart; cfg = s; if (lsChanged) { build(); idx = Math.min(s.guideStep || 0, steps.length); } render(); });
 api.on('log', ev => {
+  if (ev.kind === 'level') { charLevel = ev.level; api.quiet({ charLevel }); render(); return; }
   if (ev.kind !== 'entered' || !steps.length) return;
+  area = ev.area; api.quiet({ lastArea: area });
   // Szukamy najbliższego kroku, który prowadzi do tej strefy, i przechodzimy za niego.
   for (let i = idx; i < Math.min(steps.length, idx + 14); i++) {
     if (steps[i].enter === ev.area) { idx = i + 1; api.quiet({ guideStep: idx }); render(); return; }
   }
+  render();
 });
+
+function areaLevel(name) {
+  const lv = data && data.areaLevels && data.areaLevels[name];
+  if (!lv || !lv.length) return null;
+  if (!charLevel) return lv[0];
+  return lv.slice().sort((a, b) => Math.abs(a - charLevel) - Math.abs(b - charLevel))[0];
+}
 
 function part(p) {
   switch (p.k) {
@@ -88,12 +99,18 @@ function render() {
   const cur = steps[Math.min(idx, steps.length - 1)];
   const inSection = steps.filter(s => s.section === cur.section);
   const posInSection = inSection.indexOf(cur) + 1;
-  const head = `<div class="bar"><b>${esc(cur.section)}</b><span class="num">${posInSection}/${inSection.length}</span>
-    <span class="grow"></span><button id="prev" title="Poprzedni krok">‹</button><button id="next" title="Następny krok">›</button>
-    <button id="lev" title="Otwórz poe-leveling.com">poe-leveling</button><button id="x" title="Ukryj">×</button></div>`;
+  const al = area ? areaLevel(area) : null;
+  const diff = al && charLevel ? charLevel - al : null;
+  const badge = diff == null ? '' : `<span class="lv ${diff < -2 ? 'low' : diff > 3 ? 'high' : 'ok'}" title="Twój poziom ${charLevel}, strefa ${al}">${diff > 0 ? '+' : ''}${diff}</span>`;
+  const head = `<div class="top"><span class="zone">${esc(area || cur.section)}</span>${badge}<span class="grow"></span>
+      <button id="prev" title="Poprzedni krok (Ctrl+Alt+←)">‹</button><button id="next" title="Następny krok (Ctrl+Alt+→)">›</button><button id="x" title="Ukryj">×</button></div>
+    <div class="bar"><span>${esc(cur.section)} · krok <span class="num">${posInSection}/${inSection.length}</span></span><span class="grow"></span><a id="lev" title="Otwórz poe-leveling.com">poe-leveling.com</a></div>`;
   let body;
   if (idx >= steps.length) body = '<div class="done">Kampania ukończona. Powodzenia na mapach.</div>';
-  else body = stepHtml(cur, 'now') + steps.slice(idx + 1, idx + 3).map(s => stepHtml(s, 'next')).join('');
+  else {
+    const next = steps.slice(idx + 1, idx + 3);
+    body = stepHtml(cur, 'now') + (next.length ? `<div class="after">potem</div>` + next.map(s => stepHtml(s, 'next')).join('') : '');
+  }
   root.innerHTML = head + body;
   document.getElementById('prev').onclick = () => move(-1);
   document.getElementById('next').onclick = () => move(1);

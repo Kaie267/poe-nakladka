@@ -96,6 +96,21 @@
   .eye { background: none; border: none; color: var(--faint); padding: 0; font-size: 11px; }
   .eye:hover { color: var(--text); }
 
+  .tier { display: inline-block; font-family: 'PlexMono', monospace; font-size: 10px; padding: 0 3px; margin-right: 5px; border: 1px solid; border-radius: 2px; vertical-align: 1px; }
+  .tier.t1 { color: var(--gold); border-color: #6b5626; } .tier.t2 { color: var(--sell); border-color: #3f5a2f; } .tier.t3 { color: #b9b3a2; border-color: #4a463b; } .tier.t4 { color: var(--faint); border-color: #34302a; }
+  .note { margin: 0; padding: 8px 12px; border-bottom: 1px solid #2c2921; font-size: 12.5px; }
+  .note.good { background: #18200f; color: var(--sell); } .note span { color: var(--muted); font-size: 12px; }
+  .cmp-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .v-good { color: var(--sell); } .v-bad { color: var(--bad); } .v-mid { color: var(--gold); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+  .chip { font-size: 12px; padding: 1px 6px; border: 1px solid #2c2921; background: #1a1813; }
+  .chip.up { color: var(--sell); } .chip.down { color: var(--bad); }
+  .resrow { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+  .resrow b { font-weight: 500; color: var(--text); } .resrow .up b { color: var(--sell); } .resrow .down b { color: var(--bad); } .resrow i { color: var(--bad); font-style: normal; }
+  .muted { color: var(--muted); }
+  .lrow { display: flex; align-items: center; gap: 10px; }
+  .lrow b { font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+  .lrow code { flex: 1; font-family: 'PlexMono', monospace; font-size: 12px; color: var(--muted); background: #0f0e0a; border: 1px solid #2c2921; padding: 3px 6px; }
   .status { color: var(--muted); font-size: 12px; }
   .err { color: var(--bad); font-size: 12px; }
   .foot { display: flex; justify-content: space-between; color: var(--faint); font-size: 11px; padding: 7px 12px; background: #17150f; }

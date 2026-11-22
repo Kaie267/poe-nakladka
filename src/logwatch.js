@@ -10,6 +10,7 @@ const RE = {
   left: /\] : (\S+) has left the area\.$/,
   entered: /\] : You have entered (.+)\.$/,
   accepted: /\] : Trade accepted\.$/,
+  level: /\] : (\S+) \((\w+)\) is now level (\d+)$/,
   cancelled: /\] : Trade cancelled\.$/,
 };
 const BUY = /^Hi, I(?:'d| would) like to buy your (.+?) listed for ([\d.,]+) (.+?) in (.+)$/;
@@ -37,6 +38,7 @@ function parseLine(line) {
   if ((m = line.match(RE.left))) return { kind: 'left', name: m[1] };
   if ((m = line.match(RE.entered))) return { kind: 'entered', area: m[1] };
   if (RE.accepted.test(line)) return { kind: 'accepted' };
+  if ((m = line.match(RE.level))) return { kind: 'level', name: m[1], cls: m[2], level: +m[3] };
   if (RE.cancelled.test(line)) return { kind: 'cancelled' };
   return null;
 }

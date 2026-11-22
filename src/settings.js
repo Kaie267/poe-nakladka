@@ -17,14 +17,15 @@ const DEFAULTS = {
     market: 'Ctrl+Shift+F',
     wiki: 'Ctrl+Alt+W',
     settings: 'Ctrl+Shift+O',
-    guide: 'Ctrl+Shift+G',
+    guide: 'Ctrl+Shift+L',
     guideNext: 'Ctrl+Alt+Right',
     guidePrev: 'Ctrl+Alt+Left',
-    leveling: 'Ctrl+Shift+L',
+    leveling: 'Ctrl+Shift+G',
     stash: 'Ctrl+Shift+S',
     counting: 'Ctrl+Shift+K',
     sheets: 'Ctrl+Shift+N',
     app: 'F9',
+    lab: 'Ctrl+Shift+J',
   },
   account: '',
   guideStep: 0,
@@ -34,6 +35,16 @@ const DEFAULTS = {
   buildName: '',
   buildGems: [],
   buildProfile: { type: '', defense: '', element: '' },
+  buildItems: {},            // noszone przedmioty z PoB (slot -> {name, base, mods})
+  buildRes: null,            // odporności postaci z PoB
+  listUndercut: 5,
+  liveSearches: [],          // [{id, name, url, on}]
+  labAuto: true,
+  uiScale: 1,
+  uiOpacity: 1,
+  regexAvoid: [],
+  profiles: [],              // profile postaci: [{name, data}]
+  activeProfile: '',           // o ile % taniej niż rynek podpowiadać cenę wystawienia
   explainMods: true,
   autoExchange: true,
   watch: [],                 // obserwowane: [{name, rarity, baseType, itemClass}]
@@ -73,6 +84,13 @@ class Settings {
       const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
       this.data = { ...this.data, ...saved, hotkeys: { ...DEFAULTS.hotkeys, ...(saved.hotkeys || {}) } };
     } catch { /* pierwszy start */ }
+    // Migracja 2.4: Ctrl+Shift+L otwiera teraz interaktywny poradnik (wcześniej stronę poe-leveling).
+    if (!this.data.migr24) {
+      const h = this.data.hotkeys;
+      if (h.leveling === 'Ctrl+Shift+L' && h.guide === 'Ctrl+Shift+G') { h.guide = 'Ctrl+Shift+L'; h.leveling = 'Ctrl+Shift+G'; }
+      this.data.migr24 = true;
+      try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch { /* */ }
+    }
   }
   get() { return this.data; }
   // Zapis bez przeładowania skrótów (np. postęp poradnika).

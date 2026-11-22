@@ -32,3 +32,7 @@ assert.deepEqual(a.mods.map(x => x.type), ['implicit', 'explicit', 'explicit', '
 
 assert.equal(parseItem('hello world'), null);
 console.log('parser: OK');
+const adv = parseItem(S.advanced);
+assert.equal(adv.mods[1].tier, 2); assert.equal(adv.mods[1].affix, 'prefix');
+assert.equal(adv.mods[2].tier, 1); assert.equal(adv.mods[2].affix, 'suffix');
+console.log('tiers: OK');
