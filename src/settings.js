@@ -20,7 +20,7 @@ const DEFAULTS = {
     guide: 'Ctrl+Shift+L',
     guideNext: 'Ctrl+Alt+Right',
     guidePrev: 'Ctrl+Alt+Left',
-    leveling: 'Ctrl+Shift+G',
+    leveling: '',
     stash: 'Ctrl+Shift+S',
     counting: 'Ctrl+Shift+K',
     sheets: 'Ctrl+Shift+N',
@@ -85,6 +85,15 @@ class Settings {
       this.data = { ...this.data, ...saved, hotkeys: { ...DEFAULTS.hotkeys, ...(saved.hotkeys || {}) } };
     } catch { /* pierwszy start */ }
     // Migracja 2.4: Ctrl+Shift+L otwiera teraz interaktywny poradnik (wcześniej stronę poe-leveling).
+    // Migracja 2.4.1: Ctrl+Shift+L zawsze otwiera interaktywny poradnik; strona poe-leveling tylko z linku w poradniku.
+    if (!this.data.migr241) {
+      const h = this.data.hotkeys;
+      for (const k of Object.keys(h)) if (k !== 'guide' && h[k] === 'Ctrl+Shift+L') h[k] = '';
+      h.guide = 'Ctrl+Shift+L';
+      if (h.leveling === 'Ctrl+Shift+G') h.leveling = '';
+      this.data.migr24 = true; this.data.migr241 = true;
+      try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch { /* */ }
+    }
     if (!this.data.migr24) {
       const h = this.data.hotkeys;
       if (h.leveling === 'Ctrl+Shift+L' && h.guide === 'Ctrl+Shift+G') { h.guide = 'Ctrl+Shift+L'; h.leveling = 'Ctrl+Shift+G'; }

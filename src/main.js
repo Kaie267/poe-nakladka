@@ -405,6 +405,7 @@ function registerHotkeys() {
   reg(h.market, () => toggleMarket());
   reg(h.settings, () => openSettings());
   reg(h.guide, toggleGuide);
+  // Pierwsze uruchomienie poradnika: pokaż od razu, bez czekania na zapis ustawień.
   reg(h.guideNext, () => send('guide', 'guide:move', 1));
   reg(h.guidePrev, () => send('guide', 'guide:move', -1));
   reg(h.leveling, toggleLeveling);
