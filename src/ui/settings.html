@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Nakładka PoE</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://web.poecdn.com data:">
 <link rel="stylesheet" href="base.css">
 <style>
   html, body { background: var(--bg); user-select: text; height: 100%; }
@@ -38,6 +38,52 @@
   .stat div span { display: block; color: var(--muted); font-size: 12px; }
   .ok { color: var(--sell); } .err { color: var(--bad); }
   .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; }
+  .topbar { display: flex; justify-content: flex-end; gap: 16px; color: var(--muted); font-size: 12px; margin: -8px 0 10px; font-family: 'PlexMono', monospace; }
+  .topbar b { color: var(--gold); font-weight: 500; }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+  .acts { display: flex; gap: 6px; }
+  .cfg { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .cfg label { display: flex; gap: 6px; align-items: center; }
+  .cfg input { width: 180px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .hero { display: flex; gap: 40px; align-items: flex-end; margin-bottom: 16px; }
+  .hero .k { color: var(--muted); font-size: 12px; display: block; margin-bottom: 2px; }
+  .hero .v { font-family: 'PlexMono', monospace; font-size: 34px; font-weight: 500; letter-spacing: -0.04em; line-height: 1; }
+  .hero .v small { font-size: 15px; color: var(--muted); letter-spacing: 0; margin-left: 3px; }
+  .hero .s { font-family: 'PlexMono', monospace; font-size: 18px; }
+  .up { color: var(--sell); } .down { color: var(--bad); }
+  .cards { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card { border: 1px solid var(--rule); background: #1a1813; padding: 12px 14px; }
+  .ct { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 600; margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .ct span { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+  .chart { position: relative; height: 190px; }
+  .chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .tip { position: absolute; pointer-events: none; background: #0f0e0a; border: 1px solid var(--rule); padding: 4px 7px; font-size: 12px; white-space: nowrap; transform: translate(-50%, -100%); margin-top: -8px; }
+  .tip b { font-family: 'PlexMono', monospace; color: var(--text); font-weight: 500; }
+  .empty { color: var(--faint); font-size: 12px; padding: 30px 0; text-align: center; }
+  .cat { display: grid; grid-template-columns: 90px 1fr 74px 38px; gap: 8px; align-items: center; font-size: 12px; padding: 3px 0; }
+  .cat .bar { height: 8px; background: #2a271f; border-radius: 0 4px 4px 0; overflow: hidden; }
+  .cat .bar i { display: block; height: 100%; background: var(--gold); border-radius: 0 4px 4px 0; }
+  .cat .n { font-family: 'PlexMono', monospace; text-align: right; }
+  .cat .p { color: var(--faint); text-align: right; font-family: 'PlexMono', monospace; }
+  .tools { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .tools #q { width: 220px; }
+  .tools .grow { flex: 1; }
+  .seg { display: flex; } .seg button { border-radius: 0; padding: 3px 10px; } .seg button + button { border-left: none; }
+  .seg button.on { border-color: var(--gold); color: var(--gold); }
+  .it td { vertical-align: middle; }
+  .it img { width: 26px; height: 26px; object-fit: contain; display: block; }
+  .it .nm { font-weight: 500; }
+  .it .nm small { color: var(--faint); font-weight: 400; margin-left: 4px; }
+  .rar-Unique { color: var(--unique); } .rar-Rare { color: var(--rare); } .rar-Magic { color: var(--magic); } .rar-Gem { color: var(--gem); } .rar-Currency, .rar-Divination { color: var(--cur); }
+  .it.hidden td { opacity: 0.4; }
+  .eye { background: none; border: none; color: var(--faint); padding: 0 4px; font-size: 13px; }
+  .eye:hover { color: var(--text); }
+  .cheapmark { color: var(--bad); font-size: 11px; margin-left: 6px; }
+  .tabs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+  .tabcard { border: 1px solid var(--rule); padding: 10px; cursor: pointer; }
+  .tabcard:hover { border-color: var(--gold); }
+  .tabcard b { display: block; font-family: 'PlexMono', monospace; font-size: 20px; font-weight: 500; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -48,6 +94,7 @@
     <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
   </nav>
   <main>
+    <div class="topbar" id="topbar"></div>
     <section id="ogolne">
       <h1>Ogólne</h1>
       <p class="lead">Najedź na przedmiot w grze i wciśnij <kbd class="k-priceCheck">Ctrl+D</kbd>. Gra musi działać w trybie <i>Windowed Fullscreen</i>.</p>
@@ -81,6 +128,7 @@
       <div class="row"><span>poe-leveling.com</span><input data-hk="leveling"></div>
       <div class="row"><span>Ściągi</span><input data-hk="sheets"></div>
       <div class="row"><span>Wiki przedmiotu</span><input data-hk="wiki"></div>
+      <div class="row"><span>Okno nakładki (to okno)</span><input data-hk="app"></div>
       <div class="row"><span>Ustawienia</span><input data-hk="settings"></div>
       <h2>Komendy na klawisz</h2>
       <textarea id="commands" style="min-height:70px"></textarea>
@@ -100,12 +148,28 @@
     </section>
 
     <section id="stash">
-      <h1>Stash</h1>
-      <p class="lead">Wartość przedmiotów wystawionych na sprzedaż (zakładki Merchant i publiczne). Prywatnych zakładek GGG nie udostępnia narzędziom bez oficjalnego dostępu.</p>
-      <div class="row"><span>Nazwa konta</span><input id="account" placeholder="np. Kaie267#1234"></div>
-      <div class="hint">Tak jak na stronie trade — z numerem po #, jeśli go masz.</div>
-      <div id="stashSummary"></div>
-      <p><button id="stashRefresh">Odśwież wartość</button> <span class="hint" style="margin:0">W grze: <kbd class="k-stash"></kbd> pokazuje ceny na siatce stasha.</span></p>
+      <div class="head"><div><h1>Stash</h1><p class="lead" style="margin:0">Przedmioty wystawione na sprzedaż (zakładki Merchant i publiczne).</p></div>
+        <div class="acts"><button id="stashIngame">Pokaż w grze</button><button class="primary" id="stashRefresh">Odśwież</button></div></div>
+      <div class="cfg">
+        <label>Konto <input id="account" placeholder="np. Kaie267#1234"></label>
+        <label>Odświeżaj <select id="stashAuto"><option value="0">ręcznie</option><option value="15">co 15 min</option><option value="30">co 30 min</option><option value="60">co godzinę</option></select></label>
+        <span id="stashStatus" class="muted"></span>
+      </div>
+      <div class="hero" id="stashHero"></div>
+      <div class="cards">
+        <div class="card"><div class="ct">Wartość w czasie <span id="chartRange"></span></div><div id="chart" class="chart"></div></div>
+        <div class="card"><div class="ct">Podział</div><div id="cats"></div></div>
+      </div>
+      <div class="card">
+        <div class="tools">
+          <input id="q" placeholder="Szukaj przedmiotu…">
+          <select id="tabF"><option value="">Wszystkie zakładki</option></select>
+          <label class="muted">od <input id="minV" type="number" min="0" step="1" style="width:64px"> c</label>
+          <span class="grow"></span>
+          <div class="seg"><button data-v="list" class="on">Lista</button><button data-v="tabs">Zakładki</button></div>
+        </div>
+        <div id="itemsView"></div>
+      </div>
     </section>
 
     <section id="poradnik">

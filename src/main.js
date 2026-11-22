@@ -10,7 +10,7 @@ const { Trade } = require('./trade');
 const { LogWatch } = require('./logwatch');
 const { Updater } = require('./updater');
 const { Session } = require('./session');
-const { scanListed } = require('./stash');
+const { scanListed, snapshotOf } = require('./stash');
 const { decodePob } = require('./pob');
 
 const PKG = require('../package.json');
@@ -28,6 +28,9 @@ let currentItem = null;
 let tradeSession;
 let counting = { on: false, items: [], total: 0 };
 let stashData = null;
+let stashHistory = [];
+let quitting = false;
+const histFile = () => path.join(app.getPath('userData'), 'stash-historia.json');
 
 const send = (win, ch, data) => { const w = W[win]; if (w && !w.isDestroyed()) w.webContents.send(ch, data); };
 
@@ -83,10 +86,24 @@ function createWindows() {
 }
 
 function openSettings(section) {
-  if (W.settings && !W.settings.isDestroyed()) { W.settings.show(); W.settings.focus(); if (section) send('settings', 'goto', section); return; }
-  W.settings = new BrowserWindow({ width: 680, height: 820, title: 'Nakładka PoE', autoHideMenuBar: true, backgroundColor: '#15140f',
-    webPreferences: { preload: PRELOAD, contextIsolation: true } });
+  if (W.settings && !W.settings.isDestroyed()) {
+    W.settings.show(); W.settings.focus();
+    if (section) send('settings', 'goto', section);
+    return;
+  }
+  const wa = screen.getPrimaryDisplay().workArea;
+  W.settings = new BrowserWindow({ width: Math.min(1040, wa.width - 40), height: Math.min(860, wa.height - 40), title: 'Nakładka PoE', autoHideMenuBar: true,
+    backgroundColor: '#15140f', show: false, webPreferences: { preload: PRELOAD, contextIsolation: true } });
+  W.settings.setAlwaysOnTop(true, 'floating');
   W.settings.loadFile(UI('settings.html'), section ? { hash: section } : undefined);
+  W.settings.once('ready-to-show', () => { W.settings.show(); W.settings.focus(); });
+  // Zamknięcie okna tylko je chowa — skrót otwiera je natychmiast i bez utraty stanu.
+  W.settings.on('close', e => { if (!quitting) { e.preventDefault(); W.settings.hide(); } });
+}
+
+function toggleApp() {
+  if (W.settings && !W.settings.isDestroyed() && W.settings.isVisible() && W.settings.isFocused()) W.settings.hide();
+  else openSettings();
 }
 
 function toggleWebWindow(key, url, opts = {}) {
@@ -214,11 +231,22 @@ async function refreshStash() {
   send('stash', 'stash', { loading: { done: 0, total: 0 } });
   try {
     ninja.setLeague(s.league);
-    stashData = await scanListed({ trade, ninja, account: s.account, league: s.league, onProgress: p => send('stash', 'stash', { loading: p }) });
+    stashData = await scanListed({ trade, ninja, account: s.account, league: s.league, onProgress: p => { send('stash', 'stash', { loading: p }); send('settings', 'stash', { loading: p }); } });
     settings.saveCache('stash', stashData);
-    send('stash', 'stash', { data: stashData, divine: await ninja.divinePrice() });
-    send('settings', 'stash', { data: stashData });
-  } catch (e) { send('stash', 'stash', { error: e.message }); }
+    stashHistory.push(snapshotOf(stashData, settings.get().stashHidden));
+    stashHistory = stashHistory.slice(-1000);
+    try { fs.writeFileSync(histFile(), JSON.stringify(stashHistory)); } catch { /* */ }
+    const divine = await ninja.divinePrice();
+    send('stash', 'stash', { data: stashData, divine });
+    send('settings', 'stash', { data: stashData, history: stashHistory, divine });
+  } catch (e) { send('stash', 'stash', { error: e.message }); send('settings', 'stash', { error: e.message }); }
+}
+
+let stashTimer = null;
+function scheduleStash() {
+  clearInterval(stashTimer);
+  const m = Number(settings.get().stashAuto) || 0;
+  if (m > 0) stashTimer = setInterval(() => { if (settings.get().account) refreshStash(); }, Math.max(10, m) * 60000);
 }
 function toggleStash() {
   if (W.stash.isVisible()) { W.stash.hide(); return; }
@@ -251,6 +279,7 @@ function registerHotkeys() {
   reg(h.stash, toggleStash);
   reg(h.counting, toggleCounting);
   reg(h.sheets, toggleSheets);
+  reg(h.app, toggleApp);
   reg(h.wiki, async () => {
     const it = parseItem(await readItemFromGame(false));
     if (!it) return;
@@ -266,7 +295,7 @@ async function focusLoop() {
   const fg = await keys.foreground();
   const isPoe = fg.cls === 'POEWindowClass' || fg.title === 'Path of Exile';
   const focused = BrowserWindow.getFocusedWindow();
-  const ours = focused && [W.overlay, W.sheets, W.market, W.leveling].includes(focused);
+  const ours = focused && [W.overlay, W.sheets, W.market, W.leveling, W.settings].includes(focused);
   const want = isPoe || ours || process.platform !== 'win32';
   if (want && !hotkeysOn) registerHotkeys();
   if (!want && hotkeysOn) { globalShortcut.unregisterAll(); hotkeysOn = false; }
@@ -357,11 +386,14 @@ app.whenReady().then(async () => {
     if (f) settings.set({ clientLog: f });
   }
   if (settings.get().clientLog) logw.start(settings.get().clientLog);
+  try { stashHistory = JSON.parse(fs.readFileSync(histFile(), 'utf8')); } catch { stashHistory = []; }
+  scheduleStash();
   focusLoop();
   if (!settings.get().league || !settings.get().clientLog) openSettings();
 });
 
 app.on('window-all-closed', e => e.preventDefault());
+app.on('before-quit', () => { quitting = true; });
 app.on('will-quit', () => { globalShortcut.unregisterAll(); keys && keys.stop(); });
 
 // ---------- IPC ----------
@@ -374,6 +406,7 @@ ipcMain.handle('settings:set', (_e, patch) => {
   if (s.clientLog !== before) logw.start(s.clientLog);
   if (W.hud) { if (s.hudVisible) W.hud.showInactive(); else W.hud.hide(); }
   send('guide', 'settings', s);
+  scheduleStash();
   return s;
 });
 ipcMain.handle('settings:quiet', (_e, patch) => settings.quiet(patch));
@@ -412,6 +445,15 @@ ipcMain.handle('pob:import', (_e, code) => {
   } catch (e) { return { error: 'Nie udało się odczytać kodu PoB: ' + e.message }; }
 });
 ipcMain.handle('stash:refresh', () => refreshStash());
+ipcMain.handle('stash:history', () => stashHistory);
+ipcMain.handle('stash:ingame', () => { if (!W.stash.isVisible()) toggleStash(); });
+ipcMain.handle('stash:hide-item', (_e, name, hide) => {
+  const set = new Set(settings.get().stashHidden || []);
+  if (hide) set.add(name); else set.delete(name);
+  settings.quiet({ stashHidden: [...set] });
+  return [...set];
+});
+ipcMain.handle('market:info', async () => ({ divine: await ninja.divinePrice(), league: settings.get().league }));
 ipcMain.handle('stash:rect', (_e, rect) => settings.quiet({ stashRect: rect }));
 ipcMain.handle('stash:hide', () => W.stash.hide());
 ipcMain.handle('stash:get', () => stashData || settings.loadCache('stash', 7 * 24 * 3600 * 1000));

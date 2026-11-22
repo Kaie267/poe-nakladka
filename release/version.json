@@ -1,1 +1,1 @@
-{ "version": "2.0.0", "size": 426640, "minBase": "2.0.0", "notes": "Poradnik kampanii, wartość stasha, statystyki map, historia handlu, ściągi, automatyczne aktualizacje." }
+{ "version": "2.1.0", "size": 444631, "minBase": "2.0.0", "notes": "Nowy widok Stash: wykres wartości w czasie, podział na kategorie, lista z ikonami, wyszukiwarka, filtry, pomijanie przedmiotów, automatyczne odświeżanie. Okno nakładki pod klawiszem F9 (zmienisz w Skrótach)." }

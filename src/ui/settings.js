@@ -30,7 +30,7 @@ async function load() {
   $('commands').value = (s.commands || []).map(c => `${c.key} = ${c.text}`).join('\n');
   $('mapDanger').value = (s.mapDanger || []).join('\n');
   $('pobInfo').textContent = s.buildName ? 'Wczytany: ' + s.buildName : '';
-  const st = await api.stashGet(); if (st) stashSummary(st);
+  await stashInit();
 }
 
 $('save').onclick = async () => {
@@ -59,17 +59,162 @@ $('pobImport').onclick = async () => {
 };
 
 // --- stash ---
-function stashSummary(d) {
-  const tabs = d.tabs.slice(0, 12).map(x => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}</td><td class="n">${fmt(x.value)} c</td><td class="n">${fmt(x.listed)} c</td></tr>`).join('');
-  const cheap = d.items.filter(i => i.cheap);
-  $('stashSummary').innerHTML = `<div class="stat"><div><span>wartość rynkowa</span><b class="big">${fmt(d.value)} c</b></div><div><span>według twoich cen</span><b class="big">${fmt(d.listed)} c</b></div><div><span>przedmiotów</span><b class="big">${d.scanned}</b></div></div>
-    ${d.total > d.scanned ? `<p class="hint" style="margin:0 0 8px">Policzono ${d.scanned} najdroższych z ${d.total} wystawionych.</p>` : ''}
-    ${cheap.length ? `<p class="err">Wystawione dużo taniej niż rynek: ${cheap.slice(0, 6).map(i => esc(i.name)).join(', ')}${cheap.length > 6 ? '…' : ''}</p>` : ''}
-    <table><tr><th>Zakładka</th><th style="text-align:right">szt.</th><th style="text-align:right">rynek</th><th style="text-align:right">twoje ceny</th></tr>${tabs}</table>
-    <p class="hint" style="margin:6px 0 0">Stan z ${new Date(d.at).toLocaleString('pl-PL')}</p>`;
+const ST = { data: null, history: [], divine: null, hidden: new Set(), view: 'list' };
+const money = c => {
+  if (c == null) return '—';
+  if (ST.divine && Math.abs(c) >= ST.divine) return `${(c / ST.divine).toFixed(1)}<small>div</small>`;
+  return `${fmt(c)}<small>c</small>`;
+};
+const moneyTxt = c => ST.divine && Math.abs(c) >= ST.divine ? `${(c / ST.divine).toFixed(2)} div` : `${fmt(c)} c`;
+
+async function stashInit() {
+  const s = await api.getSettings();
+  ST.hidden = new Set(s.stashHidden || []);
+  $('stashAuto').value = String(s.stashAuto ?? 30);
+  ST.history = await api.stashHistory() || [];
+  ST.data = await api.stashGet();
+  const mi = await api.marketInfo(); ST.divine = mi.divine;
+  topbar(mi);
+  stashRender();
 }
-$('stashRefresh').onclick = async () => { $('stashRefresh').textContent = 'Liczę…'; await api.stashRefresh(); $('stashRefresh').textContent = 'Odśwież wartość'; };
-api.on('stash', d => { if (d.data) stashSummary(d.data); });
+function topbar(mi) {
+  $('topbar').innerHTML = `${mi.divine ? `<span>1 div = <b>${Math.round(mi.divine)} c</b></span>` : ''}<span>${esc(mi.league || '')}</span>`;
+}
+
+function visibleItems() {
+  if (!ST.data) return [];
+  const q = $('q').value.trim().toLowerCase();
+  const tab = $('tabF').value;
+  const min = Number($('minV').value) || 0;
+  return ST.data.items.filter(i => (!q || i.name.toLowerCase().includes(q) || String(i.baseType).toLowerCase().includes(q))
+    && (!tab || i.tab === tab) && i.value >= min).sort((a, b) => b.value - a.value);
+}
+
+function stashRender() {
+  const d = ST.data;
+  if (!d) {
+    $('stashHero').innerHTML = '<div class="muted">Brak danych. Wpisz nazwę konta, kliknij Zapisz, a potem Odśwież.</div>';
+    $('chart').innerHTML = '<div class="empty">Wykres pojawi się po pierwszym odświeżeniu.</div>'; $('cats').innerHTML = ''; $('itemsView').innerHTML = '';
+    return;
+  }
+  const items = d.items.filter(i => !ST.hidden.has(i.name));
+  const value = items.reduce((a, i) => a + i.value, 0);
+  const listed = items.reduce((a, i) => a + (i.listedChaos || 0), 0);
+  const h = ST.history;
+  const prev = h.length > 1 ? h[h.length - 2].value : null;
+  const delta = prev != null ? value - prev : null;
+  $('stashHero').innerHTML = `
+    <div><span class="k">wartość rynkowa</span><span class="v">${money(value)}</span></div>
+    <div><span class="k">od poprzedniego</span><span class="s ${delta == null ? '' : delta >= 0 ? 'up' : 'down'}">${delta == null ? '—' : (delta >= 0 ? '+' : '−') + moneyTxt(Math.abs(delta))}</span></div>
+    <div><span class="k">według twoich cen</span><span class="s">${moneyTxt(listed)}</span></div>
+    <div><span class="k">przedmiotów</span><span class="s">${items.length}${d.total > d.scanned ? ` <span class="muted">z ${d.total}</span>` : ''}</span></div>`;
+  $('stashStatus').textContent = `stan z ${new Date(d.at).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+  drawChart();
+  drawCats(items);
+  const tabs = d.tabs.map(t => t.name);
+  const cur = $('tabF').value;
+  $('tabF').innerHTML = '<option value="">Wszystkie zakładki</option>' + tabs.map(t => `<option ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  drawItems();
+}
+
+function drawChart() {
+  const pts = ST.history.filter(p => p && p.value != null);
+  const el = $('chart');
+  if (pts.length < 2) { el.innerHTML = '<div class="empty">Za mało pomiarów — wykres zbuduje się z kolejnych odświeżeń.</div>'; $('chartRange').textContent = ''; return; }
+  const W = 560, H = 190, L = 46, R = 8, T = 8, B = 22;
+  const t0 = pts[0].at, t1 = pts[pts.length - 1].at;
+  const vmax = Math.max(...pts.map(p => p.value)) * 1.08 || 1;
+  const x = t => L + (t1 === t0 ? 0 : (t - t0) / (t1 - t0)) * (W - L - R);
+  const y = v => T + (1 - v / vmax) * (H - T - B);
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.at).toFixed(1)},${y(p.value).toFixed(1)}`).join('');
+  const area = `${line}L${x(t1).toFixed(1)},${y(0)}L${x(t0).toFixed(1)},${y(0)}Z`;
+  const ticks = [0, 0.5, 1].map(f => vmax / 1.08 * f);
+  const multiDay = new Date(t0).toDateString() !== new Date(t1).toDateString();
+  const lbl = t => new Date(t).toLocaleString('pl-PL', multiDay ? { day: '2-digit', month: '2-digit' } : { hour: '2-digit', minute: '2-digit' });
+  const xt = [t0, t0 + (t1 - t0) / 2, t1];
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2c2921" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" fill="#6c6656" font-size="10" font-family="PlexMono">${ST.divine && v >= ST.divine ? (v / ST.divine).toFixed(1) + ' div' : Math.round(v) + ' c'}</text>`).join('')}
+    ${xt.map((t, i) => `<text x="${x(t)}" y="${H - 6}" text-anchor="${['start', 'middle', 'end'][i]}" fill="#6c6656" font-size="10" font-family="PlexMono">${lbl(t)}</text>`).join('')}
+    <path d="${area}" fill="#c9a24a" opacity="0.10"/>
+    <path d="${line}" fill="none" stroke="#c9a24a" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <line id="cx" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="#6c6656" stroke-width="1" visibility="hidden" vector-effect="non-scaling-stroke"/>
+    <circle id="cd" r="4" fill="#c9a24a" stroke="#1a1813" stroke-width="2" visibility="hidden"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="hit"/>
+  </svg><div class="tip" id="tip" hidden></div>`;
+  $('chartRange').textContent = `${pts.length} pomiarów`;
+  const svg = el.querySelector('svg'), tip = $('tip'), cx = el.querySelector('#cx'), cd = el.querySelector('#cd');
+  el.querySelector('#hit').onmousemove = e => {
+    const r = svg.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / r.width * W;
+    let best = pts[0];
+    for (const p of pts) if (Math.abs(x(p.at) - mx) < Math.abs(x(best.at) - mx)) best = p;
+    const px = x(best.at), py = y(best.value);
+    cx.setAttribute('x1', px); cx.setAttribute('x2', px); cx.setAttribute('visibility', 'visible');
+    cd.setAttribute('cx', px); cd.setAttribute('cy', py); cd.setAttribute('visibility', 'visible');
+    tip.hidden = false;
+    tip.style.left = (px / W * r.width) + 'px'; tip.style.top = (py / H * r.height) + 'px';
+    tip.innerHTML = `<b>${moneyTxt(best.value)}</b> <span class="muted">${new Date(best.at).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>`;
+  };
+  el.querySelector('#hit').onmouseleave = () => { tip.hidden = true; cx.setAttribute('visibility', 'hidden'); cd.setAttribute('visibility', 'hidden'); };
+}
+
+function drawCats(items) {
+  const cats = {};
+  for (const i of items) cats[i.category || 'Ekwipunek'] = (cats[i.category || 'Ekwipunek'] || 0) + i.value;
+  const total = Object.values(cats).reduce((a, b) => a + b, 0) || 1;
+  const rows = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const max = rows.length ? rows[0][1] : 1;
+  $('cats').innerHTML = rows.length ? rows.map(([k, v]) => `<div class="cat"><span>${esc(k)}</span><span class="bar"><i style="width:${Math.max(1, v / max * 100)}%"></i></span><span class="n">${esc(moneyTxt(v))}</span><span class="p">${Math.round(v / total * 100)}%</span></div>`).join('')
+    : '<div class="empty">Brak przedmiotów</div>';
+}
+
+function drawItems() {
+  const list = visibleItems();
+  if (ST.view === 'tabs') {
+    const d = ST.data;
+    $('itemsView').innerHTML = `<div class="tabs-grid">${d.tabs.map(t => {
+      const its = d.items.filter(i => i.tab === t.name && !ST.hidden.has(i.name));
+      const v = its.reduce((a, i) => a + i.value, 0);
+      return `<div class="tabcard" data-tab="${esc(t.name)}"><span class="muted">${esc(t.name)} · ${its.length} szt.</span><b>${esc(moneyTxt(v))}</b></div>`;
+    }).join('')}</div>`;
+    $('itemsView').querySelectorAll('[data-tab]').forEach(c => c.onclick = () => { $('tabF').value = c.dataset.tab; setView('list'); });
+    return;
+  }
+  $('itemsView').innerHTML = list.length ? `<table>
+    <tr><th></th><th>Przedmiot</th><th>Zakładka</th><th style="text-align:right">szt.</th><th style="text-align:right">za sztukę</th><th style="text-align:right">razem</th><th style="text-align:right">twoja cena</th><th></th></tr>
+    ${list.slice(0, 300).map(i => {
+      const hid = ST.hidden.has(i.name);
+      const unit = i.value / (i.stack || 1);
+      return `<tr class="it ${hid ? 'hidden' : ''}">
+        <td>${i.icon && /^https:\/\/web\.poecdn\.com\//.test(i.icon) ? `<img src="${esc(i.icon)}" alt="">` : ''}</td>
+        <td><span class="nm rar-${esc(String(i.rarity).split(' ')[0])}">${esc(i.name)}</span>${i.links >= 5 ? `<small>${i.links}L</small>` : ''}${i.cheap ? '<span class="cheapmark">za tanio</span>' : ''}</td>
+        <td class="muted">${esc(i.tab)}</td><td class="n">${i.stack}</td><td class="n">${esc(moneyTxt(unit))}</td><td class="n">${esc(moneyTxt(i.value))}</td>
+        <td class="n muted">${i.price ? `${esc(i.price.amount)} ${esc(i.price.currency)}` : ''}</td>
+        <td><button class="eye" data-hide="${esc(i.name)}" title="${hid ? 'Wlicz do sumy' : 'Pomiń w sumie'}">${hid ? '◌' : '●'}</button></td></tr>`;
+    }).join('')}</table>` : '<div class="empty">Nic nie pasuje do filtrów.</div>';
+  $('itemsView').querySelectorAll('[data-hide]').forEach(b => b.onclick = async () => {
+    const n = b.dataset.hide; const hide = !ST.hidden.has(n);
+    ST.hidden = new Set(await api.stashHideItem(n, hide));
+    stashRender();
+  });
+}
+function setView(v) { ST.view = v; document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); drawItems(); }
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => setView(b.dataset.v));
+['q', 'tabF', 'minV'].forEach(id => $(id).addEventListener('input', drawItems));
+$('stashRefresh').onclick = async () => {
+  const acc = $('account').value.trim();
+  if (acc) await api.quiet({ account: acc, stashAuto: Number($('stashAuto').value) });
+  $('stashRefresh').textContent = 'Liczę…'; $('stashRefresh').disabled = true;
+  await api.stashRefresh();
+  $('stashRefresh').textContent = 'Odśwież'; $('stashRefresh').disabled = false;
+};
+$('stashIngame').onclick = () => api.stashIngame();
+$('stashAuto').onchange = () => api.setSettings({ stashAuto: Number($('stashAuto').value) });
+api.on('stash', d => {
+  if (d.loading) { $('stashStatus').textContent = d.loading.total ? `pobieram ${d.loading.done}/${d.loading.total}…` : 'szukam ofert…'; return; }
+  if (d.error) { $('stashStatus').innerHTML = `<span class="err">${esc(d.error)}</span>`; return; }
+  if (d.data) { ST.data = d.data; if (d.history) ST.history = d.history; if (d.divine) ST.divine = d.divine; stashRender(); }
+});
 
 // --- historia ---
 async function loadHistory() {

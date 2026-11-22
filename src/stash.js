@@ -4,6 +4,25 @@
 
 const FRAME = { 0: 'Normal', 1: 'Magic', 2: 'Rare', 3: 'Unique', 4: 'Gem', 5: 'Currency', 6: 'Divination Card' };
 
+function category(rarity, typeLine) {
+  const t = String(typeLine || '');
+  if (/ Map$/.test(t) || /^Map /.test(t)) return 'Mapy';
+  if (rarity === 'Divination Card') return 'Karty';
+  if (rarity === 'Unique') return 'Unikaty';
+  if (rarity === 'Gem') return 'Gemy';
+  if (rarity === 'Currency') {
+    if (/Scarab/.test(t)) return 'Scaraby';
+    if (/Thread/.test(t)) return 'Threads';
+    if (/Essence/.test(t)) return 'Esencje';
+    if (/Fossil|Resonator/.test(t)) return 'Fossile';
+    if (/ Oil$/.test(t)) return 'Oleje';
+    if (/Splinter|Fragment|Emblem|Breachstone|Invitation|Key|Crest|Sacrifice|Mortal/.test(t)) return 'Fragmenty';
+    if (/Delirium Orb|Simulacrum/.test(t)) return 'Delirium';
+    return 'Waluta';
+  }
+  return 'Ekwipunek';
+}
+
 async function scanListed({ trade, ninja, account, league, onProgress }) {
   const body = {
     query: { status: { option: 'any' }, filters: { trade_filters: { filters: { account: { input: account } } } } },
@@ -24,7 +43,8 @@ async function scanListed({ trade, ninja, account, league, onProgress }) {
       const listedChaos = p.amount && rates[p.currency] ? p.amount * rates[p.currency] : null;
       const entry = {
         tab: st.name || '(bez nazwy)', x: st.x ?? it.x ?? 0, y: st.y ?? it.y ?? 0, w: it.w || 1, h: it.h || 1,
-        name: it.name || it.typeLine, baseType: it.baseType || it.typeLine, rarity, stack: it.stackSize || 1, icon: it.icon,
+        name: it.name || it.typeLine, baseType: it.baseType || it.typeLine, rarity, category: category(rarity, it.typeLine),
+        links: Math.max(0, ...((it.sockets || []).reduce((a, sk) => { a[sk.group] = (a[sk.group] || 0) + 1; return a; }, []).filter(Boolean))), stack: it.stackSize || 1, icon: it.icon,
         price: p.amount ? { amount: p.amount, currency: p.currency } : null, listedChaos,
         marketChaos: null,
       };
@@ -55,4 +75,12 @@ async function scanListed({ trade, ninja, account, league, onProgress }) {
   };
 }
 
-module.exports = { scanListed };
+function snapshotOf(data, hidden) {
+  const hide = new Set(hidden || []);
+  const items = data.items.filter(i => !hide.has(i.name));
+  const cats = {};
+  for (const i of items) cats[i.category || 'Ekwipunek'] = (cats[i.category || 'Ekwipunek'] || 0) + i.value;
+  return { at: data.at, value: items.reduce((a, i) => a + i.value, 0), listed: items.reduce((a, i) => a + (i.listedChaos || 0), 0), count: items.length, cats };
+}
+
+module.exports = { scanListed, snapshotOf, category };

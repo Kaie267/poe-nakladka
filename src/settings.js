@@ -24,6 +24,7 @@ const DEFAULTS = {
     stash: 'Ctrl+Shift+S',
     counting: 'Ctrl+Shift+K',
     sheets: 'Ctrl+Shift+N',
+    app: 'F9',
   },
   account: '',
   guideStep: 0,
@@ -32,7 +33,9 @@ const DEFAULTS = {
   guideVisible: false,
   buildName: '',
   buildGems: [],
-  stashRect: null,            // {x, y, w, h} — ramka siatki stasha na ekranie
+  stashRect: null,
+  stashHidden: [],           // nazwy przedmiotów pomijanych w sumach
+  stashAuto: 30,             // co ile minut odświeżać wartość stasha (0 = ręcznie)            // {x, y, w, h} — ramka siatki stasha na ekranie
   hudVisible: true,
   buyerSound: true,
   commands: [
