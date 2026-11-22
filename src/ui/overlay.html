@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://web.poecdn.com">
 <link rel="stylesheet" href="base.css">
 <style>
   #card { background: var(--bg); border: 1px solid var(--rule); border-top: 2px solid var(--gold); margin: 0; }
@@ -43,11 +43,29 @@
   table { width: 100%; border-collapse: collapse; }
   td { padding: 2px 0; }
   td.p { text-align: right; width: 1%; white-space: nowrap; padding-right: 10px; }
-  td.c { color: var(--muted); text-align: right; width: 1%; white-space: nowrap; }
-  td.acc { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+  td.c { color: var(--muted); text-align: right; width: 1%; white-space: nowrap; padding-left: 8px; }
+  td.acc { padding-left: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
   .tag { font-size: 10px; color: var(--gold); border: 1px solid var(--gold); padding: 0 3px; border-radius: 2px; margin-left: 4px; }
   .status { color: var(--muted); font-size: 12px; }
   .err { color: var(--bad); font-size: 12px; }
+  .ci { width: 16px; height: 16px; vertical-align: -3px; }
+  .mode { display: flex; gap: 16px; justify-content: center; padding: 7px 12px; border-bottom: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+  .mode label { display: flex; gap: 5px; align-items: center; cursor: pointer; }
+  .est { text-align: center; border: 1px solid var(--rule); padding: 8px; margin-bottom: 9px; }
+  .est .k { color: var(--muted); font-size: 12px; }
+  .est .ev { font-size: 22px; font-weight: 500; margin: 2px 0; }
+  .est .ev .ci { width: 20px; height: 20px; vertical-align: -3px; }
+  .est .er { color: var(--faint); font-size: 11px; }
+  .rel-hi { color: var(--sell); } .rel-mid { color: var(--gold); } .rel-lo { color: var(--bad); }
+  .ctrl { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+  .ctrl select { font-size: 12px; padding: 3px 4px; min-width: 0; }
+  .tbl { max-height: 280px; overflow-y: auto; }
+  tr.th th { font-weight: 400; color: var(--faint); font-size: 11px; text-align: left; padding-bottom: 3px; position: sticky; top: 0; background: var(--bg); }
+  th.p, th.c { text-align: right; } tr.th th:nth-last-child(2) { padding-left: 10px; }
+  tr.off td { opacity: 0.35; }
+  .eye { background: none; border: none; color: var(--faint); padding: 0 4px 0 0; font-size: 11px; }
+  .eye:hover { color: var(--text); }
+  .muted { color: var(--muted); }
   .foot { display: flex; justify-content: space-between; color: var(--faint); font-size: 11px; padding: 6px 12px; }
 </style>
 </head>

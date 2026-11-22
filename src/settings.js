@@ -34,7 +34,9 @@ const DEFAULTS = {
   buildName: '',
   buildGems: [],
   stashRect: null,
-  stashHidden: [],           // nazwy przedmiotów pomijanych w sumach
+  stashHidden: [],
+  stashProfiles: [],         // [{id, name, tabs: [], cats: []}] — puste listy = wszystko
+  stashProfile: '',           // nazwy przedmiotów pomijanych w sumach
   stashAuto: 30,             // co ile minut odświeżać wartość stasha (0 = ręcznie)            // {x, y, w, h} — ramka siatki stasha na ekranie
   hudVisible: true,
   buyerSound: true,

@@ -49,3 +49,27 @@ const guide = require('../src/data/guide.json');
   assert.equal((await u2.check()).state, 'latest');
   console.log('v2: OK');
 })().catch(e => { console.error(e); process.exit(1); });
+
+// Stash: stronicowanie powyżej 100 przedmiotów
+(async () => {
+  const { scanListed, snapshotOf } = require('../src/stash');
+  const all = Array.from({ length: 230 }, (_, i) => ({ id: 'i' + i, price: 300 - i }));
+  let searches = 0;
+  const trade = { call: async (g, m, p, body) => {
+    if (m === 'POST') {
+      searches++;
+      const max = body.query.filters.trade_filters.filters.price && body.query.filters.trade_filters.filters.price.max;
+      const res = all.filter(x => max == null || x.price <= max).slice(0, 100);
+      return { id: 'q', total: 230, result: res.map(x => x.id) };
+    }
+    const ids = p.split('/fetch/')[1].split('?')[0].split(',');
+    return { result: ids.map(id => { const x = all.find(a => a.id === id); return { id, item: { frameType: 2, typeLine: 'Ring', w: 1, h: 1, x: 0, y: 0 }, listing: { price: { amount: x.price, currency: 'chaos' }, stash: { name: x.price > 150 ? 'A' : 'B', x: 0, y: 0 } } }; }) };
+  } };
+  const ninja = { getTradeRates: async () => ({ chaos: 1 }), priceItem: async () => null };
+  const d = await scanListed({ trade, ninja, account: 'x', league: 'L' });
+  require('assert').equal(d.scanned, 230);
+  require('assert').ok(searches >= 3);
+  const snap = snapshotOf(d, []);
+  require('assert').ok(snap.tc['A|Ekwipunek'] > 0 && snap.tc['B|Ekwipunek'] > 0);
+  console.log('stash pages: OK');
+})().catch(e => { console.error(e); process.exit(1); });

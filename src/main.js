@@ -167,7 +167,7 @@ async function priceCheck(advanced) {
   if (!item) { send('overlay', 'item', { error: 'Nie rozpoznano przedmiotu. Najedź kursorem na przedmiot w grze i wciśnij skrót jeszcze raz.' }); return; }
   currentItem = item;
   const s = settings.get();
-  send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, counting: counting.on });
+  send('overlay', 'item', { item, threshold: s.vendorThreshold, mapDanger: s.mapDanger, counting: counting.on, tradeStatus: s.tradeStatus, league: s.league });
   runPricing(item).catch(e => send('overlay', 'ninja', { error: e.message }));
 }
 
@@ -185,7 +185,7 @@ async function runPricing(item) {
     try {
       const filters = await trade.prepareFilters(item);
       send('overlay', 'filters', { filters });
-      if (s.autoTradeRares && item.rarity === 'Rare') await doTradeSearch({ filters, useBase: true, ilvl: false });
+      if (s.autoTradeRares && item.rarity === 'Rare') await doTradeSearch({ filters, useBase: true, ilvl: false, status: s.tradeStatus });
     } catch (e) { send('overlay', 'trade', { error: e.message }); }
   }
 }
@@ -196,7 +196,7 @@ async function doTradeSearch(opts) {
   try {
     const rates = await ninja.getTradeRates();
     const r = await trade.search(currentItem, opts, rates);
-    send('overlay', 'trade', { result: r, divine: rates.divine || null });
+    send('overlay', 'trade', { result: r, divine: rates.divine || null, icons: await ninja.getIcons() });
   } catch (e) { send('overlay', 'trade', { error: e.message }); }
 }
 
@@ -237,7 +237,8 @@ async function refreshStash() {
     stashHistory = stashHistory.slice(-1000);
     try { fs.writeFileSync(histFile(), JSON.stringify(stashHistory)); } catch { /* */ }
     const divine = await ninja.divinePrice();
-    send('stash', 'stash', { data: stashData, divine });
+    const icons = await ninja.getIcons();
+    send('stash', 'stash', { data: stashData, divine, icons });
     send('settings', 'stash', { data: stashData, history: stashHistory, divine });
   } catch (e) { send('stash', 'stash', { error: e.message }); send('settings', 'stash', { error: e.message }); }
 }
@@ -252,7 +253,7 @@ function toggleStash() {
   if (W.stash.isVisible()) { W.stash.hide(); return; }
   W.stash.showInactive();
   if (!stashData) stashData = settings.loadCache('stash', 7 * 24 * 3600 * 1000);
-  ninja.divinePrice().then(divine => send('stash', 'stash', { data: stashData, rect: settings.get().stashRect, divine }));
+  Promise.all([ninja.divinePrice(), ninja.getIcons()]).then(([divine, icons]) => send('stash', 'stash', { data: stashData, rect: settings.get().stashRect, divine, icons }));
 }
 
 // ---------- poradnik ----------
@@ -453,7 +454,7 @@ ipcMain.handle('stash:hide-item', (_e, name, hide) => {
   settings.quiet({ stashHidden: [...set] });
   return [...set];
 });
-ipcMain.handle('market:info', async () => ({ divine: await ninja.divinePrice(), league: settings.get().league }));
+ipcMain.handle('market:info', async () => ({ divine: await ninja.divinePrice(), league: settings.get().league, icons: await ninja.getIcons() }));
 ipcMain.handle('stash:rect', (_e, rect) => settings.quiet({ stashRect: rect }));
 ipcMain.handle('stash:hide', () => W.stash.hide());
 ipcMain.handle('stash:get', () => stashData || settings.loadCache('stash', 7 * 24 * 3600 * 1000));

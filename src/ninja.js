@@ -70,6 +70,13 @@ class Ninja {
             else if (d.tradeId && byDetails.has(slug)) rates[d.tradeId] = byDetails.get(slug);
           }
           this.tradeRates = rates;
+          this.icons = {};
+          this.tradeIcons = {};
+          for (const d of j.currencyDetails || []) {
+            if (!d.icon || !/^https:\/\/web\.poecdn\.com\//.test(d.icon)) continue;
+            this.icons[d.name] = d.icon;
+            if (d.tradeId) this.tradeIcons[d.tradeId] = d.icon;
+          }
         }
         lines = (j.lines || []).map(l => ({
           name: l.currencyTypeName, chaos: l.chaosEquivalent, change: totalChange(l.receiveSparkLine) ?? totalChange(l.paySparkLine),
@@ -126,6 +133,12 @@ class Ninja {
   async getTradeRates() {
     try { await this.load('currency', 'Currency'); } catch { /* bez kursów pokażemy surowe ceny */ }
     return this.tradeRates || { chaos: 1 };
+  }
+
+  async getIcons() {
+    try { await this.load('currency', 'Currency'); } catch { /* */ }
+    const i = this.icons || {};
+    return { chaos: i['Chaos Orb'] || null, divine: i['Divine Orb'] || null, trade: this.tradeIcons || {} };
   }
 
   async findIn(list, pred) {

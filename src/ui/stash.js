@@ -5,6 +5,7 @@ const msg = document.getElementById('msg');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 10 ? n.toFixed(0) : n.toFixed(1);
 
+let icons = {};
 let data = null, divine = null, rect = null, tab = null, cal = false, threshold = 5, status = '';
 
 // Domyślna pozycja siatki stasha (skaluje się z wysokością ekranu, jak w grze).
@@ -17,6 +18,7 @@ api.getSettings().then(s => { threshold = s.vendorThreshold; rect = s.stashRect 
 api.on('stash', d => {
   if (d.rect !== undefined) rect = d.rect || rect || defaultRect();
   if (d.divine) divine = d.divine;
+  if (d.icons) icons = d.icons;
   if (d.wait) { status = `limit GGG — czekam ${d.wait} s`; renderBar(); return; }
   if (d.loading) { status = d.loading.total ? `pobieram ${d.loading.done}/${d.loading.total}` : 'szukam ofert…'; renderBar(); return; }
   if (d.error) { status = ''; showMsg(d.error); renderBar(); return; }
@@ -24,7 +26,8 @@ api.on('stash', d => {
   layout();
 });
 
-function money(c) { return divine && c >= divine ? `${(c / divine).toFixed(1)} div` : `${fmt(c)} c`; }
+const ico = k => icons[k] ? `<img src="${icons[k]}" alt="">` : (k === 'divine' ? ' div' : ' c');
+function money(c) { return divine && c >= divine ? `${(c / divine).toFixed(1)}${ico('divine')}` : `${fmt(c)}${ico('chaos')}`; }
 function showMsg(t) { msg.hidden = false; msg.textContent = t; msg.style.left = rect.x + 'px'; msg.style.top = (rect.y + 40) + 'px'; }
 function hideMsg() { msg.hidden = true; }
 
@@ -47,7 +50,13 @@ function renderCells() {
     const el = document.createElement('div');
     el.className = 'cell' + (it.cheap ? ' cheap' : it.value >= threshold ? ' sell' : ' low');
     Object.assign(el.style, { left: it.x * cw + 'px', top: it.y * ch + 'px', width: it.w * cw + 'px', height: it.h * ch + 'px', fontSize: (t.quad ? 9 : 11) + 'px' });
-    el.textContent = it.value ? (divine && it.value >= divine ? (it.value / divine).toFixed(1) + 'd' : fmt(it.value)) : '';
+    if (it.value) {
+      const isDiv = divine && it.value >= divine;
+      el.append(isDiv ? (it.value / divine).toFixed(1) : fmt(it.value));
+      const src = icons[isDiv ? 'divine' : 'chaos'];
+      if (src) { const im = document.createElement('img'); im.src = src; im.alt = ''; el.append(im); }
+      else el.append(isDiv ? 'd' : 'c');
+    }
     el.title = it.name;
     frame.appendChild(el);
   }

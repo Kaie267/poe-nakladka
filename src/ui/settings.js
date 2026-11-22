@@ -59,34 +59,99 @@ $('pobImport').onclick = async () => {
 };
 
 // --- stash ---
-const ST = { data: null, history: [], divine: null, hidden: new Set(), view: 'list' };
+const ST = { data: null, history: [], divine: null, hidden: new Set(), view: 'list', profiles: [], profile: '', editing: null };
+const CATS = ['Waluta', 'Scaraby', 'Threads', 'Esencje', 'Fossile', 'Oleje', 'Fragmenty', 'Delirium', 'Karty', 'Unikaty', 'Gemy', 'Mapy', 'Ekwipunek'];
+const cico = k => ST.icons && ST.icons[k] ? ` <img src="${esc(ST.icons[k])}" alt="${k === 'divine' ? 'div' : 'c'}">` : `<small>${k === 'divine' ? 'div' : 'c'}</small>`;
 const money = c => {
   if (c == null) return '—';
-  if (ST.divine && Math.abs(c) >= ST.divine) return `${(c / ST.divine).toFixed(1)}<small>div</small>`;
-  return `${fmt(c)}<small>c</small>`;
+  if (ST.divine && Math.abs(c) >= ST.divine) return `${(c / ST.divine).toFixed(1)}${cico('divine')}`;
+  return `${fmt(c)}${cico('chaos')}`;
 };
 const moneyTxt = c => ST.divine && Math.abs(c) >= ST.divine ? `${(c / ST.divine).toFixed(2)} div` : `${fmt(c)} c`;
 
 async function stashInit() {
   const s = await api.getSettings();
   ST.hidden = new Set(s.stashHidden || []);
+  ST.profiles = s.stashProfiles || []; ST.profile = s.stashProfile || '';
+  renderProfiles();
   $('stashAuto').value = String(s.stashAuto ?? 30);
   ST.history = await api.stashHistory() || [];
   ST.data = await api.stashGet();
-  const mi = await api.marketInfo(); ST.divine = mi.divine;
+  const mi = await api.marketInfo(); ST.divine = mi.divine; ST.icons = mi.icons || {};
   topbar(mi);
   stashRender();
 }
 function topbar(mi) {
-  $('topbar').innerHTML = `${mi.divine ? `<span>1 div = <b>${Math.round(mi.divine)} c</b></span>` : ''}<span>${esc(mi.league || '')}</span>`;
+  const ic = k => mi.icons && mi.icons[k] ? `<img src="${esc(mi.icons[k])}" alt="" style="width:16px;height:16px;vertical-align:-3px">` : '';
+  $('topbar').innerHTML = `${mi.divine ? `<span>1${ic('divine') || ' div'} = <b>${Math.round(mi.divine)}</b>${ic('chaos') || ' c'}</span>` : ''}<span>${esc(mi.league || '')}</span>`;
 }
+
+function curProfile() { return ST.profiles.find(p => p.id === ST.profile) || null; }
+function inProfile(i) {
+  const p = curProfile();
+  if (!p) return true;
+  return (!p.tabs.length || p.tabs.includes(i.tab)) && (!p.cats.length || p.cats.includes(i.category || 'Ekwipunek'));
+}
+// Wartość z historycznego pomiaru dla wybranego profilu (z rozbicia zakładka|kategoria).
+function snapValue(snap) {
+  const p = curProfile();
+  if (!p) return snap.value;
+  if (!snap.tc) return null;
+  let v = 0;
+  for (const [k, val] of Object.entries(snap.tc)) {
+    const [tab, cat] = k.split('|');
+    if ((!p.tabs.length || p.tabs.includes(tab)) && (!p.cats.length || p.cats.includes(cat))) v += val;
+  }
+  return v;
+}
+function renderProfiles() {
+  $('prof').innerHTML = '<option value="">Wszystko</option>' + ST.profiles.map(p => `<option value="${esc(p.id)}" ${p.id === ST.profile ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  $('profEdit').hidden = !curProfile();
+}
+function openEditor(p) {
+  ST.editing = p ? { ...p } : { id: 'p' + Date.now(), name: '', tabs: [], cats: [], isNew: true };
+  const e = ST.editing;
+  $('profName').value = e.name;
+  const tabs = ST.data ? ST.data.tabs.map(t => t.name) : [];
+  for (const t of e.tabs) if (!tabs.includes(t)) tabs.push(t);
+  $('profTabs').innerHTML = tabs.length ? tabs.map(t => `<label><input type="checkbox" value="${esc(t)}" ${e.tabs.includes(t) ? 'checked' : ''}> ${esc(t)}</label>`).join('') : '<span class="hint2">Najpierw odśwież stash.</span>';
+  $('profCats').innerHTML = CATS.map(c => `<label><input type="checkbox" value="${esc(c)}" ${e.cats.includes(c) ? 'checked' : ''}> ${esc(c)}</label>`).join('');
+  $('profDel').hidden = !!e.isNew;
+  $('profEditor').hidden = false;
+  $('profName').focus();
+}
+async function saveProfiles() {
+  await api.quiet({ stashProfiles: ST.profiles, stashProfile: ST.profile });
+  renderProfiles(); stashRender();
+}
+$('prof').onchange = () => { ST.profile = $('prof').value; saveProfiles(); };
+$('profNew').onclick = () => openEditor(null);
+$('profEdit').onclick = () => openEditor(curProfile());
+$('profCancel').onclick = () => { $('profEditor').hidden = true; };
+$('profSave').onclick = () => {
+  const e = ST.editing;
+  e.name = $('profName').value.trim() || 'Profil';
+  e.tabs = [...$('profTabs').querySelectorAll('input:checked')].map(i => i.value);
+  e.cats = [...$('profCats').querySelectorAll('input:checked')].map(i => i.value);
+  const { isNew, ...p } = e;
+  ST.profiles = isNew ? [...ST.profiles, p] : ST.profiles.map(x => x.id === p.id ? p : x);
+  ST.profile = p.id;
+  $('profEditor').hidden = true;
+  saveProfiles();
+};
+$('profDel').onclick = () => {
+  ST.profiles = ST.profiles.filter(x => x.id !== ST.editing.id);
+  if (ST.profile === ST.editing.id) ST.profile = '';
+  $('profEditor').hidden = true;
+  saveProfiles();
+};
 
 function visibleItems() {
   if (!ST.data) return [];
   const q = $('q').value.trim().toLowerCase();
   const tab = $('tabF').value;
   const min = Number($('minV').value) || 0;
-  return ST.data.items.filter(i => (!q || i.name.toLowerCase().includes(q) || String(i.baseType).toLowerCase().includes(q))
+  return ST.data.items.filter(i => inProfile(i) && (!q || i.name.toLowerCase().includes(q) || String(i.baseType).toLowerCase().includes(q))
     && (!tab || i.tab === tab) && i.value >= min).sort((a, b) => b.value - a.value);
 }
 
@@ -97,11 +162,11 @@ function stashRender() {
     $('chart').innerHTML = '<div class="empty">Wykres pojawi się po pierwszym odświeżeniu.</div>'; $('cats').innerHTML = ''; $('itemsView').innerHTML = '';
     return;
   }
-  const items = d.items.filter(i => !ST.hidden.has(i.name));
+  const items = d.items.filter(i => !ST.hidden.has(i.name) && inProfile(i));
   const value = items.reduce((a, i) => a + i.value, 0);
   const listed = items.reduce((a, i) => a + (i.listedChaos || 0), 0);
   const h = ST.history;
-  const prev = h.length > 1 ? h[h.length - 2].value : null;
+  const prev = h.length > 1 ? snapValue(h[h.length - 2]) : null;
   const delta = prev != null ? value - prev : null;
   $('stashHero').innerHTML = `
     <div><span class="k">wartość rynkowa</span><span class="v">${money(value)}</span></div>
@@ -118,7 +183,7 @@ function stashRender() {
 }
 
 function drawChart() {
-  const pts = ST.history.filter(p => p && p.value != null);
+  const pts = ST.history.map(p => p && ({ at: p.at, value: snapValue(p) })).filter(p => p && p.value != null);
   const el = $('chart');
   if (pts.length < 2) { el.innerHTML = '<div class="empty">Za mało pomiarów — wykres zbuduje się z kolejnych odświeżeń.</div>'; $('chartRange').textContent = ''; return; }
   const W = 560, H = 190, L = 46, R = 8, T = 8, B = 22;
@@ -172,8 +237,8 @@ function drawItems() {
   const list = visibleItems();
   if (ST.view === 'tabs') {
     const d = ST.data;
-    $('itemsView').innerHTML = `<div class="tabs-grid">${d.tabs.map(t => {
-      const its = d.items.filter(i => i.tab === t.name && !ST.hidden.has(i.name));
+    $('itemsView').innerHTML = `<div class="tabs-grid">${d.tabs.filter(t => { const p = curProfile(); return !p || !p.tabs.length || p.tabs.includes(t.name); }).map(t => {
+      const its = d.items.filter(i => i.tab === t.name && !ST.hidden.has(i.name) && inProfile(i));
       const v = its.reduce((a, i) => a + i.value, 0);
       return `<div class="tabcard" data-tab="${esc(t.name)}"><span class="muted">${esc(t.name)} · ${its.length} szt.</span><b>${esc(moneyTxt(v))}</b></div>`;
     }).join('')}</div>`;

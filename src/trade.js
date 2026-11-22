@@ -193,7 +193,11 @@ class Trade {
 
   buildQuery(item, opts) {
     const s = this.getSettings();
-    const q = { status: { option: s.tradeStatus || 'online' }, stats: [{ type: 'and', filters: [] }], filters: {} };
+    const q = { status: { option: opts.status || s.tradeStatus || 'online' }, stats: [{ type: 'and', filters: [] }], filters: {} };
+    const tf = {};
+    if (opts.indexed) tf.indexed = { option: opts.indexed };
+    if (opts.priceCur) tf.price = { option: opts.priceCur };
+    if (Object.keys(tf).length) q.filters.trade_filters = { filters: tf };
     const typeFilters = {};
     const misc = {};
     if (item.rarity === 'Unique') {
@@ -203,7 +207,7 @@ class Trade {
     } else if (item.rarity === 'Gem') {
       q.type = item.name;
       if (item.gemLevel) misc.gem_level = { min: item.gemLevel };
-      if (item.quality) misc.quality = { min: item.quality };
+      if (item.quality && !opts.broad) misc.quality = { min: item.quality };
       misc.corrupted = { option: item.corrupted ? 'true' : 'false' };
     } else if (['Currency', 'Divination Card'].includes(item.rarity) || item.isMap) {
       q.type = item.isMap ? item.baseType : item.name;
@@ -216,7 +220,7 @@ class Trade {
       for (const f of opts.filters || []) {
         if (!f.enabled || !f.id) continue;
         const flt = { id: f.id, disabled: false };
-        if (f.min !== null && f.min !== undefined && f.min !== '') flt.value = { min: Number(f.min) };
+        if (f.min !== null && f.min !== undefined && f.min !== '') flt.value = { min: opts.broad ? Math.floor(Number(f.min) * 0.9) : Number(f.min) };
         q.stats[0].filters.push(flt);
       }
       if (opts.ilvl && item.ilvl) misc.ilvl = { min: item.ilvl };
@@ -232,19 +236,27 @@ class Trade {
     const league = encodeURIComponent(s.league);
     const body = this.buildQuery(item, opts);
     const res = await this.call('search', 'POST', `/api/trade/search/${league}`, body);
-    const ids = (res.result || []).slice(0, 10);
+    const ids = (res.result || []).slice(0, opts.count || 20);
     const url = `${SITE}/trade/search/${league}/${res.id}`;
     if (!ids.length) return { total: res.total || 0, listings: [], url };
-    const f = await this.call('fetch', 'GET', `/api/trade/fetch/${ids.join(',')}?query=${res.id}`);
-    const listings = (f.result || []).filter(Boolean).map(r => {
-      const p = (r.listing && r.listing.price) || {};
-      const rate = rates[p.currency];
-      return {
-        amount: p.amount, currency: p.currency, chaos: rate && p.amount ? p.amount * rate : null,
-        account: r.listing && r.listing.account && r.listing.account.name,
-        indexed: r.listing && r.listing.indexed, instant: !(r.listing && r.listing.whisper),
-      };
-    });
+    const listings = [];
+    for (let i = 0; i < ids.length; i += 10) {
+      const f = await this.call('fetch', 'GET', `/api/trade/fetch/${ids.slice(i, i + 10).join(',')}?query=${res.id}`);
+      for (const r of (f.result || []).filter(Boolean)) {
+        const p = (r.listing && r.listing.price) || {};
+        const rate = rates[p.currency];
+        const prop = name => {
+          const pr = ((r.item && r.item.properties) || []).find(x => x.name === name);
+          return pr && pr.values && pr.values[0] ? parseInt(String(pr.values[0][0]).replace(/[^\d]/g, ''), 10) : null;
+        };
+        listings.push({
+          id: r.id, amount: p.amount, currency: p.currency, chaos: rate && p.amount ? p.amount * rate : null,
+          account: r.listing && r.listing.account && r.listing.account.name,
+          indexed: r.listing && r.listing.indexed, instant: !(r.listing && r.listing.whisper),
+          level: prop('Level'), quality: prop('Quality'), ilvl: r.item && r.item.ilvl,
+        });
+      }
+    }
     return { total: res.total || 0, listings, url };
   }
 }

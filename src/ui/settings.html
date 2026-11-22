@@ -80,6 +80,12 @@
   .eye { background: none; border: none; color: var(--faint); padding: 0 4px; font-size: 13px; }
   .eye:hover { color: var(--text); }
   .cheapmark { color: var(--bad); font-size: 11px; margin-left: 6px; }
+  .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .checks { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; }
+  .checks label { display: flex; gap: 5px; align-items: center; }
+  .hint2 { color: var(--faint); }
+  #prof { max-width: 180px; }
+  .hero img, td img.ci { width: 18px; height: 18px; vertical-align: -3px; }
   .tabs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
   .tabcard { border: 1px solid var(--rule); padding: 10px; cursor: pointer; }
   .tabcard:hover { border-color: var(--gold); }
@@ -149,7 +155,15 @@
 
     <section id="stash">
       <div class="head"><div><h1>Stash</h1><p class="lead" style="margin:0">Przedmioty wystawione na sprzedaż (zakładki Merchant i publiczne).</p></div>
-        <div class="acts"><button id="stashIngame">Pokaż w grze</button><button class="primary" id="stashRefresh">Odśwież</button></div></div>
+        <div class="acts"><select id="prof" title="Profil"></select><button id="profNew" title="Nowy profil">+</button><button id="profEdit" title="Edytuj profil">Edytuj</button>
+          <button id="stashIngame">Pokaż w grze</button><button class="primary" id="stashRefresh">Odśwież</button></div></div>
+      <div class="card" id="profEditor" hidden style="margin-bottom:12px">
+        <div class="ct">Profil</div>
+        <div class="cfg" style="margin-bottom:10px"><label>Nazwa <input id="profName" placeholder="np. Esencje"></label></div>
+        <div class="pgrid"><div><div class="muted" style="margin-bottom:4px">Zakładki <span class="hint2">(nic nie zaznaczone = wszystkie)</span></div><div id="profTabs" class="checks"></div></div>
+        <div><div class="muted" style="margin-bottom:4px">Kategorie <span class="hint2">(nic = wszystkie)</span></div><div id="profCats" class="checks"></div></div></div>
+        <p style="margin:10px 0 0;display:flex;gap:6px"><button class="primary" id="profSave">Zapisz profil</button><button id="profCancel">Anuluj</button><span style="flex:1"></span><button id="profDel">Usuń profil</button></p>
+      </div>
       <div class="cfg">
         <label>Konto <input id="account" placeholder="np. Kaie267#1234"></label>
         <label>Odświeżaj <select id="stashAuto"><option value="0">ręcznie</option><option value="15">co 15 min</option><option value="30">co 30 min</option><option value="60">co godzinę</option></select></label>
