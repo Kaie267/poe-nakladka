@@ -3,21 +3,26 @@
 // i pokazujemy jej kroki w kompaktowym panelu (bieżący krok + kolejne), z podświetleniem strefy z gry.
 
 const CSS = `
-html, body { background: #13120e !important; margin: 0 !important; overflow-x: hidden; }
+html, body { background: transparent !important; margin: 0 !important; overflow-x: hidden; }
+body.pl-on { background: rgba(19,18,14,0.93) !important; border: 1px solid #3a352a; box-sizing: border-box; min-height: 100vh; }
 body.pl-on #__nuxt { display: none !important; }
-#pl-bar { position: sticky; top: 0; z-index: 99999; display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 10px; background: #1d1b15; border-bottom: 1px solid #3a352a;
+#pl-bar { position: sticky; top: 0; z-index: 99999; display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 10px; background: rgba(36,33,25,0.96); border-bottom: 1px solid #3a352a;
   font: 600 13px 'Segoe UI', sans-serif; color: #e9e4d6; -webkit-app-region: drag; user-select: none; }
 #pl-bar .z { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #pl-bar .lv { font: 600 11px Consolas, monospace; padding: 0 5px; border-radius: 2px; color: #13120e; flex: none; }
 #pl-bar .lv.low { background: #d9694f; } #pl-bar .lv.ok { background: #8fbf6a; } #pl-bar .lv.high { background: #c9a24a; }
 #pl-bar .g { flex: 1; }
-#pl-bar button { -webkit-app-region: no-drag; background: #2a271f; color: #e9e4d6; border: 1px solid #3a352a; border-radius: 3px; font: 12px 'Segoe UI', sans-serif; padding: 1px 7px; cursor: pointer; flex: none; }
-#pl-bar button:hover { border-color: #c9a24a; }
-#pl-bar button.on { color: #c9a24a; border-color: #c9a24a; }
-#pl-sub { display: flex; justify-content: space-between; padding: 3px 10px; font: 11px 'Segoe UI', sans-serif; color: #9b9482; border-bottom: 1px solid #2c2921; }
+#pl-bar button { -webkit-app-region: no-drag; background: none; color: #9b9482; border: none; font: 14px 'Segoe UI', sans-serif; padding: 0 5px; cursor: pointer; flex: none; line-height: 1; }
+#pl-bar button:hover { color: #e9e4d6; }
+#pl-bar .n { color: #6c6656; font: 400 11px 'Segoe UI', sans-serif; white-space: nowrap; }
+#pl-bar button.on { color: #c9a24a; }
+#pl-sub { display: none !important; justify-content: space-between; padding: 3px 10px; font: 11px 'Segoe UI', sans-serif; color: #9b9482; border-bottom: 1px solid #2c2921; }
 #pl-view { font: 13px/1.45 'Segoe UI', sans-serif; color: #d8d2c2; }
 #pl-view .st { padding: 6px 10px 6px 12px; border-left: 2px solid transparent; cursor: pointer; }
-#pl-view .st.cur { border-left-color: #c9a24a; background: #221e14; font-size: 14px; color: #f0ead9; padding-top: 9px; padding-bottom: 9px; }
+#pl-view .st.cur { font-weight: 600; font-size: 13.5px; color: #f0ead9; padding: 8px 10px 7px; border-bottom: 1px solid #2c2921; }
+#pl-view .st.nx { padding: 3px 10px 3px 24px; position: relative; color: #b9b3a2; font-size: 12.5px; }
+#pl-view .st.nx::before { content: ''; position: absolute; left: 11px; top: 11px; width: 5px; height: 5px; border-radius: 50%; background: #6c6656; }
+#pl-view .st.nx:last-child { padding-bottom: 8px; }
 #pl-view .st.done { opacity: 0.38; }
 #pl-view .st img { height: 16px; vertical-align: -3px; display: inline !important; }
 #pl-view .st div:not(.act), #pl-view .st p, #pl-view .st span, #pl-view .st label { display: inline !important; margin: 0 !important; padding: 0 !important; }
@@ -48,9 +53,9 @@ const JS = `(() => {
   function ui() {
     const bar = document.createElement('div');
     bar.id = 'pl-bar';
-    bar.innerHTML = '<span class="z" id="pl-z">Poradnik</span><span class="lv" id="pl-lv" hidden></span><span class="g"></span>' +
-      '<button id="pl-prev" title="Poprzedni krok">‹</button><button id="pl-next" title="Następny krok">›</button>' +
-      '<button id="pl-mode" title="Bieżące kroki / cały akt">lista</button><button id="pl-tips" title="Porady do aktu">porady</button><button id="pl-x" title="Ukryj">×</button>';
+    bar.innerHTML = '<span class="z" id="pl-z">Poradnik</span><span class="lv" id="pl-lv" hidden></span><span class="n" id="pl-n"></span><span class="g"></span>' +
+      '<button id="pl-prev" title="Poprzedni krok (Ctrl+Alt+←)">‹</button><button id="pl-next" title="Następny krok (Ctrl+Alt+→)">›</button>' +
+      '<button id="pl-mode" title="Cały akt">☰</button><button id="pl-tips" title="Porady do aktu">i</button><button id="pl-x" title="Ukryj (Ctrl+Shift+L)">×</button>';
     const sub = document.createElement('div'); sub.id = 'pl-sub';
     const view = document.createElement('div'); view.id = 'pl-view';
     document.body.prepend(view); document.body.prepend(sub); document.body.prepend(bar);
@@ -71,13 +76,14 @@ const JS = `(() => {
     const cur = L[S.cur], act = S.acts[cur.act];
     const inAct = L.map((s, i) => [s, i]).filter(([s]) => s.act === cur.act);
     const pos = inAct.findIndex(([, i]) => i === S.cur) + 1;
-    document.getElementById('pl-sub').innerHTML = '<span>' + act.title + '</span><span>krok ' + pos + '/' + inAct.length + '</span>';
+    document.getElementById('pl-sub').innerHTML = '';
+    document.getElementById('pl-n').textContent = act.title + ' · ' + pos + '/' + inAct.length;
     let html = '';
     if (S.tips && act.tips.length) html += '<ul class="tips">' + act.tips.map(t => '<li>' + t + '</li>').join('') + '</ul>';
     if (S.compact) {
       html += '<div class="st cur" data-i="' + S.cur + '">' + cur.html + '</div>';
-      const next = L.slice(S.cur + 1, S.cur + 3).map((s, k) => '<div class="st" data-i="' + (S.cur + 1 + k) + '">' + (s.act !== cur.act ? '<div class="act">' + S.acts[s.act].title + '</div>' : '') + s.html + '</div>');
-      if (next.length) html += '<div class="after">potem</div>' + next.join('');
+      const next = L.slice(S.cur + 1, S.cur + 3).map((s, k) => '<div class="st nx" data-i="' + (S.cur + 1 + k) + '">' + (s.act !== cur.act ? '<div class="act">' + S.acts[s.act].title + '</div>' : '') + s.html + '</div>');
+      html += next.join('');
     } else {
       html += inAct.map(([s, i]) => '<div class="st ' + (i === S.cur ? 'cur' : i < S.cur ? 'done' : '') + '" data-i="' + i + '">' + s.html + '</div>').join('');
     }

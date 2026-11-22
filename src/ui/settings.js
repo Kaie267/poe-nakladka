@@ -439,4 +439,15 @@ function copyBtn(b, text) { navigator.clipboard.writeText(text).catch(() => api.
 $('rxMapCopy').onclick = () => copyBtn($('rxMapCopy'), $('rxMapOut').textContent);
 $('rxOwnCopy').onclick = () => copyBtn($('rxOwnCopy'), $('rxOwnOut').textContent);
 
+// --- poradniki ---
+function guideShow(id) {
+  const G = window.GUIDES || [];
+  const g = G.find(x => x.id === id) || G[0];
+  if (!g) return;
+  $('gNav').innerHTML = G.map(x => `<button data-g="${x.id}" class="${x.id === g.id ? 'on' : ''}">${esc(x.name)}</button>`).join('');
+  $('gNav').querySelectorAll('[data-g]').forEach(b => b.onclick = () => guideShow(b.dataset.g));
+  $('gView').innerHTML = g.html;
+}
+guideShow('craft');
+
 load().then(() => show((location.hash || '#ogolne').slice(1)));

@@ -44,6 +44,15 @@
   #profBox { margin-right: auto; display: flex; gap: 6px; align-items: center; font-family: 'Plex', sans-serif; }
   #profBox select { font-size: 12px; padding: 2px 4px; }
   #profBox button { font-size: 12px; padding: 1px 7px; }
+  .guide { line-height: 1.6; max-width: 780px; }
+  .guide h2 { font-size: 17px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .guide h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); margin: 18px 0 6px; }
+  .guide p { margin: 0 0 8px; color: #cfc9b8; }
+  .guide ol, .guide ul { margin: 0 0 8px; padding-left: 20px; color: #cfc9b8; }
+  .guide li { margin: 3px 0; }
+  .guide .warn { color: var(--gold); font-size: 12px; }
+  table.gt td, table.gt th { padding: 4px 8px 4px 0; vertical-align: top; }
+  table.gt td:first-child { font-weight: 600; white-space: nowrap; color: var(--text); }
   .rxout { display: flex; gap: 8px; align-items: center; }
   .rxout code { flex: 1; font-family: 'PlexMono', monospace; font-size: 13px; background: #0f0e0a; border: 1px solid var(--rule); padding: 6px 8px; word-break: break-all; color: var(--text); min-height: 30px; }
   .preset { display: grid; grid-template-columns: 170px 1fr auto; gap: 8px; align-items: center; margin: 5px 0; }
@@ -104,7 +113,7 @@
 <div class="wrap">
   <nav id="nav">
     <div class="brand">Nakładka PoE<small id="ver"></small></div>
-    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a>
+    <a data-s="ogolne">Ogólne</a><a data-s="skroty">Skróty</a><a data-s="handel">Handel</a><a data-s="stash">Stash</a><a data-s="obserwowane">Obserwowane</a><a data-s="live">Live search</a><a data-s="regex">Regexy</a><a data-s="poradniki">Poradniki</a>
     <a data-s="poradnik">Poradnik</a><a data-s="mapy">Mapy</a><a data-s="aktualizacje">Aktualizacje</a>
   </nav>
   <main>
@@ -143,7 +152,7 @@
       <div class="row"><span>Poradnik: pokaż/ukryj</span><input data-hk="guide"></div>
       <div class="row"><span>Poradnik: następny krok</span><input data-hk="guideNext"></div>
       <div class="row"><span>Poradnik: poprzedni krok</span><input data-hk="guidePrev"></div>
-      <div class="row"><span>Strona poe-leveling.com</span><input data-hk="leveling" placeholder="brak (link w poradniku)"></div>
+      <div class="row"><span>Strona poe-leveling.com</span><input data-hk="leveling" placeholder="brak skrótu"></div>
       <div class="row"><span>Labirynt dnia</span><input data-hk="lab"></div>
       <div class="row"><span>Ściągi</span><input data-hk="sheets"></div>
       <div class="row"><span>Wiki przedmiotu</span><input data-hk="wiki"></div>
@@ -229,6 +238,12 @@
       <div class="rxout"><code id="rxOwnOut"></code><span id="rxOwnLen" class="muted"></span><button id="rxOwnCopy">Kopiuj</button></div>
     </section>
 
+    <section id="poradniki">
+      <h1>Poradniki</h1>
+      <div class="seg" id="gNav" style="margin:10px 0 14px"></div>
+      <div class="card guide" id="gView"></div>
+    </section>
+
     <section id="poradnik">
       <h1>Poradnik kampanii</h1>
       <p class="lead">Nakładka nad grą (<kbd class="k-guide"></kbd>) sama przechodzi do kroku z twoją strefą, gdy do niej wchodzisz.</p>
@@ -277,6 +292,7 @@
   </main>
 </div>
 <div class="save"><button class="primary" id="save">Zapisz</button><span id="saved"></span></div>
+<script src="guides.js"></script>
 <script src="settings.js"></script>
 </body>
 </html>

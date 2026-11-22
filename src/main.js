@@ -309,8 +309,8 @@ function plZone() {
 }
 function createPL() {
   const wa = screen.getPrimaryDisplay().workArea;
-  const b = settings.get().plBounds || { width: 440, height: 260, x: wa.x + wa.width - 460, y: wa.y + 40 };
-  W.pl = onTop(new BrowserWindow({ ...b, frame: false, skipTaskbar: true, show: false, resizable: true, minWidth: 280, minHeight: 90, backgroundColor: '#13120e', alwaysOnTop: true,
+  const b = settings.get().plBounds || { width: 380, height: 160, x: wa.x + wa.width - 400, y: wa.y + 40 };
+  W.pl = onTop(new BrowserWindow({ ...b, frame: false, transparent: true, hasShadow: false, skipTaskbar: true, show: false, resizable: true, minWidth: 260, minHeight: 80, backgroundColor: '#00000000', alwaysOnTop: true,
     webPreferences: { partition: 'persist:leveling', contextIsolation: true } }));
   W.pl.webContents.on('did-finish-load', () => {
     W.pl.webContents.insertCSS(PL.CSS).catch(() => {});
@@ -322,7 +322,7 @@ function createPL() {
     if (typeof msg !== 'string' || !msg.startsWith('PL|')) return;
     const [, kind, a, compact] = msg.split('|');
     if (kind === 'hide') { W.pl.hide(); settings.quiet({ guideVisible: false }); }
-    if (kind === 'size' && compact === '1') { const [w] = W.pl.getSize(); W.pl.setSize(w, Math.max(110, Math.min(560, (+a || 200) + 4))); }
+    if (kind === 'size' && compact === '1') { const [w] = W.pl.getSize(); W.pl.setSize(w, Math.max(70, Math.min(560, (+a || 160) + 4))); }
   });
   W.pl.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   const save = () => { if (W.pl && !W.pl.isDestroyed()) settings.quiet({ plBounds: W.pl.getBounds() }); };
