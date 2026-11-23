@@ -742,9 +742,18 @@ ipcMain.handle('guide:source', (_e, src) => {
   W.guide.hide();
   if (wasVisible) { if (src === 'builtin') W.guide.showInactive(); else togglePL(true); }
 });
-ipcMain.handle('pob:import', (_e, code) => {
+// Link do PoB (pobb.in, pastebin, poe.ninja/pob) — pobieramy surowy kod.
+async function pobFromLink(code) {
+  const t = String(code || '').trim();
+  let m;
+  if ((m = t.match(/^https?:\/\/pobb\.in\/(?:u\/[^/]+\/)?([\w-]+)/i))) return (await net.fetch(`https://pobb.in/${m[1]}/raw`)).text();
+  if ((m = t.match(/^https?:\/\/pastebin\.com\/(?:raw\/)?(\w+)/i))) return (await net.fetch(`https://pastebin.com/raw/${m[1]}`)).text();
+  if ((m = t.match(/^https?:\/\/poe\.ninja\/(?:poe1\/)?pob\/(\w+)/i))) return (await net.fetch(`https://poe.ninja/pob/raw/${m[1]}`)).text();
+  return t;
+}
+ipcMain.handle('pob:import', async (_e, code) => {
   try {
-    const r = decodePob(code);
+    const r = decodePob(await pobFromLink(code));
     const patch = { buildSuggestName: LF.safeName('NakladkaPoE ' + (r.ascendancy || r.className || 'build')), buildGems: r.gems, buildName: [r.ascendancy || r.className, `${r.gems.length} gemów`].filter(Boolean).join(' · ') };
     if (r.className) patch.guideClass = r.className;
     if (r.profile) patch.buildProfile = r.profile;
