@@ -47,9 +47,9 @@ function buildBlocks(bf, o) {
   const uq = (bf.uniques || []).map(u => u.base).filter(Boolean);
   if (o.uniques !== false && uq.length) out.push(block(`Build: unikaty (${(bf.uniques || []).map(u => u.name).join(', ')})`, ['Rarity Unique', `BaseType == ${[...new Set(uq)].map(q).join(' ')}`],
     ['SetFontSize 45', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 300`, 'PlayEffect Green', 'MinimapIcon 0 Green Star']));
-  if (o.bases !== false && (bf.rareBases || []).length) out.push(block('Build: rare na bazach, które nosisz', ['Rarity Rare', 'ItemLevel >= 75', `BaseType == ${bf.rareBases.map(q).join(' ')}`],
+  if (o.bases !== false && (bf.rareBases || []).length) out.push(block('Build: rare na bazach, które nosisz', ['Rarity Rare', 'ItemLevel >= 68', `BaseType == ${bf.rareBases.map(q).join(' ')}`],
     ['SetFontSize 42', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 200`, 'PlayEffect Green Temp', 'MinimapIcon 1 Green Diamond']));
-  if (o.defense !== false && DEF_COND[bf.defBase]) out.push(block(`Build: rare pancerze pod obronę (${bf.defBase})`, ['Rarity Rare', `Class == ${ARMOUR_CLASSES}`, 'ItemLevel >= 80', ...DEF_COND[bf.defBase]],
+  if (o.defense !== false && DEF_COND[bf.defBase]) out.push(block(`Build: rare pancerze pod obronę (${bf.defBase})`, ['Rarity Rare', `Class == ${ARMOUR_CLASSES}`, 'ItemLevel >= 68', ...DEF_COND[bf.defBase]],
     ['SetFontSize 38', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', 'MinimapIcon 2 Green Circle']));
   if (o.gems !== false && (bf.gems || []).length) out.push(block('Build: twoje gemy', ['Class == "Skill Gems" "Support Gems"', `BaseType == ${bf.gems.map(q).join(' ')}`],
     ['SetFontSize 40', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 150`, 'MinimapIcon 2 Green Triangle']));
@@ -91,7 +91,8 @@ async function buildRules(ninja, { divine, t2 = 20, t3 = 5, build = null, buildO
   }
   out.push(...rareBlock(rares));
   out.push('# ===== koniec reguł nakładki — dalej twój filtr =====', '');
-  const counts = { t1: ti.t1.length + tc.t1.length + tu.t1.length, t2: ti.t2.length + tc.t2.length + tu.t2.length, t3: ti.t3.length + tc.t3.length };
+  const buildRulesN = buildPart.filter(x => x.startsWith('# Build:')).length;
+  const counts = { build: buildRulesN, buildOn: !!buildOpts.enabled, hasBuild: !!build, t1: ti.t1.length + tc.t1.length + tu.t1.length, t2: ti.t2.length + tc.t2.length + tu.t2.length, t3: ti.t3.length + tc.t3.length };
   return { text: out.join('\n'), counts, top: [...items, ...cards].sort((a, b) => b[1] - a[1]).slice(0, 8) };
 }
 

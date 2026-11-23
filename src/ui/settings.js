@@ -447,7 +447,9 @@ $('rxOwnCopy').onclick = () => copyBtn($('rxOwnCopy'), $('rxOwnOut').textContent
 function fbSummary(bf) {
   if (!bf) return 'Brak wczytanego buildu.';
   const D = { es: 'tarcza energii (ES)', armour: 'pancerz', evasion: 'unik', hybrid: 'hybryda' };
-  return `Unikaty: ${(bf.uniques || []).map(u => u.name).join(', ') || '—'} · bazy rare: ${(bf.rareBases || []).length} · obrona: ${D[bf.defBase] || '—'} · gemy: ${(bf.gems || []).length}`;
+  const noItems = !(bf.uniques || []).length && !(bf.rareBases || []).length;
+  return `Unikaty: ${(bf.uniques || []).map(u => u.name).join(', ') || '—'} · bazy rare: ${(bf.rareBases || []).length} · obrona: ${D[bf.defBase] || '—'} · gemy: ${(bf.gems || []).length}`
+    + (noItems ? ' — ten PoB nie ma przedmiotów, więc na zielono będą tylko rare pancerze pod twoją obronę (ilvl 68+). Zaimportuj w PoB swoją postać, żeby doszły twoje bazy i unikaty.' : '');
 }
 async function fInit(s) {
   $('fbS').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">dźwięk ${i + 1}</option>`).join('');
@@ -470,7 +472,11 @@ async function fInit(s) {
 function fShow(r) {
   if (r.error) { $('fStatus').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
   if (r.name) { $('fNameHow').textContent = r.name; $('fName').value = r.name; }
-  $('fStatus').innerHTML = `Gotowe — filtr <b>${esc(r.name || 'NakladkaPoE')}</b> (${new Date(r.at).toLocaleTimeString('pl-PL')}): T1 <b>${r.counts.t1}</b> · T2 <b>${r.counts.t2}</b> · T3 <b>${r.counts.t3}</b> przedmiotów. Najdroższe: ${r.top.slice(0, 5).map(([n, c]) => `${esc(n)} (${Math.round(c)} c)`).join(', ')}`;
+  const c = r.counts || {};
+  const bInfo = !c.buildOn ? ' · reguły pod build: <b>wyłączone</b> (zaznacz „Reguły pod build w filtrze”)'
+    : !c.hasBuild ? ' · pod build: <b>brak wczytanego buildu</b>'
+    : ` · pod build (zielone): <b>${c.build}</b> ${c.build === 1 ? 'reguła' : 'reguł'}`;
+  $('fStatus').innerHTML = `Gotowe — filtr <b>${esc(r.name || 'NakladkaPoE')}</b> (${new Date(r.at).toLocaleTimeString('pl-PL')}): T1 <b>${r.counts.t1}</b> · T2 <b>${r.counts.t2}</b> · T3 <b>${r.counts.t3}</b> przedmiotów. Najdroższe: ${r.top.slice(0, 5).map(([n, c]) => `${esc(n)} (${Math.round(c)} c)`).join(', ')}${bInfo}`;
 }
 $('fbLoad').onclick = async () => {
   if ($('fbPob').value.trim()) {
