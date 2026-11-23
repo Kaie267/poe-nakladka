@@ -46,13 +46,13 @@ function buildBlocks(bf, o) {
   const out = ['# ----- Pod twój build (PoB) -----', ''];
   const uq = (bf.uniques || []).map(u => u.base).filter(Boolean);
   if (o.uniques !== false && uq.length) out.push(block(`Build: unikaty (${(bf.uniques || []).map(u => u.name).join(', ')})`, ['Rarity Unique', `BaseType == ${[...new Set(uq)].map(q).join(' ')}`],
-    ['SetFontSize 45', 'SetTextColor 20 20 20 255', 'SetBorderColor 0 0 0 255', 'SetBackgroundColor 80 220 230 255', `PlayAlertSound ${snd} 300`, 'PlayEffect Cyan', 'MinimapIcon 0 Cyan Star']));
+    ['SetFontSize 45', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 300`, 'PlayEffect Green', 'MinimapIcon 0 Green Star']));
   if (o.bases !== false && (bf.rareBases || []).length) out.push(block('Build: rare na bazach, które nosisz', ['Rarity Rare', 'ItemLevel >= 75', `BaseType == ${bf.rareBases.map(q).join(' ')}`],
-    ['SetFontSize 42', 'SetTextColor 255 255 119 255', 'SetBorderColor 80 220 230 255', 'SetBackgroundColor 20 40 45 240', `PlayAlertSound ${snd} 200`, 'PlayEffect Cyan Temp', 'MinimapIcon 1 Cyan Diamond']));
+    ['SetFontSize 42', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 200`, 'PlayEffect Green Temp', 'MinimapIcon 1 Green Diamond']));
   if (o.defense !== false && DEF_COND[bf.defBase]) out.push(block(`Build: rare pancerze pod obronę (${bf.defBase})`, ['Rarity Rare', `Class == ${ARMOUR_CLASSES}`, 'ItemLevel >= 80', ...DEF_COND[bf.defBase]],
-    ['SetFontSize 38', 'SetBorderColor 80 220 230 200', 'MinimapIcon 2 Cyan Circle']));
+    ['SetFontSize 38', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', 'MinimapIcon 2 Green Circle']));
   if (o.gems !== false && (bf.gems || []).length) out.push(block('Build: twoje gemy', ['Class == "Skill Gems" "Support Gems"', `BaseType == ${bf.gems.map(q).join(' ')}`],
-    ['SetFontSize 40', 'SetBorderColor 80 220 230 255', `PlayAlertSound ${snd} 150`, 'MinimapIcon 2 Cyan Triangle']));
+    ['SetFontSize 40', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 150`, 'MinimapIcon 2 Green Triangle']));
   return out;
 }
 
