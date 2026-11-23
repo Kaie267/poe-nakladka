@@ -456,6 +456,7 @@ async function fInit(s) {
   const o = s.filterBuildOpts || {};
   $('fbU').checked = o.uniques !== false; $('fbB').checked = o.bases !== false; $('fbD').checked = o.defense !== false; $('fbG').checked = !!o.gems;
   $('fbS').value = String(o.sound || 2);
+  $('fbL').value = String(o.ilvl ?? 68);
   $('filterBuild').checked = !!s.filterBuild;
   $('fbInfo').textContent = fbSummary(s.buildFilter);
   const r = await api.filterList();
@@ -496,7 +497,7 @@ $('fNameBuild').onclick = async () => {
 $('fName').oninput = () => { $('fNameHow').textContent = $('fName').value.trim() || 'NakladkaPoE'; };
 $('fMake').onclick = async () => {
   await api.setSettings({ filterRares: $('fRares').value, filterName: $('fName').value.trim() || 'NakladkaPoE', filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked,
-    filterBuild: $('filterBuild').checked, filterBuildOpts: { uniques: $('fbU').checked, bases: $('fbB').checked, defense: $('fbD').checked, gems: $('fbG').checked, sound: Number($('fbS').value) || 2 } });
+    filterBuild: $('filterBuild').checked, filterBuildOpts: { uniques: $('fbU').checked, bases: $('fbB').checked, defense: $('fbD').checked, gems: $('fbG').checked, sound: Number($('fbS').value) || 2, ilvl: Number($('fbL').value) } });
   $('fStatus').textContent = 'Pobieram ceny i składam filtr…';
   fShow(await api.filterMake());
   const rl = await api.filterList(); const ours = rl.ours || [];

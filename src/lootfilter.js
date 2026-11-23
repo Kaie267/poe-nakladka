@@ -43,13 +43,16 @@ const DEF_COND = { es: ['BaseEnergyShield > 0', 'BaseArmour = 0', 'BaseEvasion =
 function buildBlocks(bf, o) {
   if (!bf) return [];
   const snd = Math.max(1, Math.min(16, Number(o.sound) || 2));
+  // Minimalny item level reguł buildu: 0 = kampania (bez limitu, liczą się też magiczne pancerze).
+  const lv = Number.isFinite(Number(o.ilvl)) ? Number(o.ilvl) : 68;
+  const ilv = lv > 0 ? [`ItemLevel >= ${lv}`] : [];
   const out = ['# ----- Pod twój build (PoB) -----', ''];
   const uq = (bf.uniques || []).map(u => u.base).filter(Boolean);
   if (o.uniques !== false && uq.length) out.push(block(`Build: unikaty (${(bf.uniques || []).map(u => u.name).join(', ')})`, ['Rarity Unique', `BaseType == ${[...new Set(uq)].map(q).join(' ')}`],
     ['SetFontSize 45', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 300`, 'PlayEffect Green', 'MinimapIcon 0 Green Star']));
-  if (o.bases !== false && (bf.rareBases || []).length) out.push(block('Build: rare na bazach, które nosisz', ['Rarity Rare', 'ItemLevel >= 68', `BaseType == ${bf.rareBases.map(q).join(' ')}`],
+  if (o.bases !== false && (bf.rareBases || []).length) out.push(block('Build: rare na bazach, które nosisz', ['Rarity Rare', ...ilv, `BaseType == ${bf.rareBases.map(q).join(' ')}`],
     ['SetFontSize 42', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 200`, 'PlayEffect Green Temp', 'MinimapIcon 1 Green Diamond']));
-  if (o.defense !== false && DEF_COND[bf.defBase]) out.push(block(`Build: rare pancerze pod obronę (${bf.defBase})`, ['Rarity Rare', `Class == ${ARMOUR_CLASSES}`, 'ItemLevel >= 68', ...DEF_COND[bf.defBase]],
+  if (o.defense !== false && DEF_COND[bf.defBase]) out.push(block(`Build: ${lv > 0 ? 'rare' : 'magiczne i rare'} pancerze pod obronę (${bf.defBase})`, [lv > 0 ? 'Rarity Rare' : 'Rarity >= Magic', `Class == ${ARMOUR_CLASSES}`, ...ilv, ...DEF_COND[bf.defBase]],
     ['SetFontSize 38', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', 'MinimapIcon 2 Green Circle']));
   if (o.gems !== false && (bf.gems || []).length) out.push(block('Build: twoje gemy', ['Class == "Skill Gems" "Support Gems"', `BaseType == ${bf.gems.map(q).join(' ')}`],
     ['SetFontSize 40', 'SetTextColor 255 255 255 255', 'SetBorderColor 255 255 255 255', 'SetBackgroundColor 30 140 50 255', `PlayAlertSound ${snd} 150`, 'MinimapIcon 2 Green Triangle']));
