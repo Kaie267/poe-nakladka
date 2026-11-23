@@ -93,7 +93,7 @@ class Ninja {
         lines = (j.lines || []).map(l => ({
           name: l.name, baseType: l.baseType, chaos: l.chaosValue, divine: l.divineValue, variant: l.variant || null,
           links: l.links || 0, corrupted: !!l.corrupted, gemLevel: l.gemLevel ?? null, gemQuality: l.gemQuality ?? null,
-          mapTier: l.mapTier ?? null, listings: l.listingCount ?? l.count ?? null, change: totalChange(l.sparkLine || l.lowConfidenceSparkLine),
+          mapTier: l.mapTier ?? null, levelRequired: l.levelRequired ?? null, listings: l.listingCount ?? l.count ?? null, change: totalChange(l.sparkLine || l.lowConfidenceSparkLine),
           spark: ((l.sparkLine && l.sparkLine.data && l.sparkLine.data.length ? l.sparkLine : l.lowConfidenceSparkLine) || {}).data || null, icon: l.icon || null,
           source: 'poe.ninja', category: type,
         }));
@@ -196,6 +196,24 @@ class Ninja {
       if (!hits.length) return null;
       const tierHit = hits.find(h => h.mapTier === item.mapTier) || hits[0];
       return { price: tierHit, matches: hits };
+    }
+    const gear = ['Normal', 'Magic', 'Rare'].includes(r) && item.baseType;
+    if (gear) {
+      // Sama baza (ilvl + influence) — dla białych/magicznych to zwykle cała wartość, dla rare dolna granica.
+      const infl = (item.influences || [])[0] || null;
+      let hits = [];
+      try { hits = (await this.load('item', 'BaseType')).filter(l => norm(l.baseType || l.name) === norm(item.baseType)); } catch { /* */ }
+      const ok = hits.filter(h => (h.variant || null) === infl && (h.levelRequired || 0) <= (item.ilvl || 0))
+        .sort((a, b) => (b.levelRequired || 0) - (a.levelRequired || 0));
+      if (ok.length && ok[0].chaos != null) return { price: { ...ok[0], source: 'poe.ninja (baza)', baseOnly: true }, matches: ok };
+    }
+    // Reszta (zaproszenia, wspomnienia, bestie, runy itd.): szukamy po nazwie w pozostałych listach.
+    if (r !== 'Rare' && r !== 'Magic') {
+      const extra = ['Invitation', 'Memory', 'Beast', 'Coffin', 'Vial', 'Wombgift', 'KalguuranRune', 'Incubator', 'HelmetEnchant'];
+      const hits = await this.findIn(extra.map(t => ['item', t]), byName(item.name));
+      if (hits.length) return { price: hits[0], matches: hits };
+      const ex = await this.findIn(EXCHANGE_TYPES.map(t => ['exchange', t]), byName(item.name));
+      if (ex.length) return { price: ex[0], matches: ex };
     }
     return null;
   }

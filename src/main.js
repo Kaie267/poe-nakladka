@@ -215,7 +215,9 @@ async function runPricing(item) {
     try {
       const filters = await trade.prepareFilters(item);
       send('overlay', 'filters', { filters });
-      if (s.autoTradeRares && item.rarity === 'Rare') await doTradeSearch({ filters, useBase: true, ilvl: false, status: s.tradeStatus });
+      const baseOnlyPrice = res && res.price && res.price.baseOnly;
+      if (s.autoTradeRares && (item.rarity === 'Rare' || (item.rarity === 'Magic' && !res))) await autoRareSearch(filters, s);
+      else if (item.rarity === 'Normal' && !baseOnlyPrice && !res) await doTradeSearch({ filters: [], baseOnly: true, status: s.tradeStatus });
     } catch (e) { send('overlay', 'trade', { error: e.message }); }
   }
 }
@@ -231,14 +233,32 @@ async function doExchange(opts) {
   } catch (e) { send('overlay', 'exchange', { error: e.message }); }
 }
 
-async function doTradeSearch(opts) {
-  if (!currentItem) return;
+async function doTradeSearch(opts, note) {
+  if (!currentItem) return null;
   send('overlay', 'trade', { loading: true });
   try {
     const rates = await ninja.getTradeRates();
     const r = await trade.search(currentItem, opts, rates);
+    if (note) r.note = note;
     send('overlay', 'trade', { result: r, divine: rates.divine || null, icons: await ninja.getIcons() });
-  } catch (e) { send('overlay', 'trade', { error: e.message }); }
+    return r;
+  } catch (e) { send('overlay', 'trade', { error: e.message }); return null; }
+}
+
+// Rare: najpierw dokładnie, a gdy brak ofert — luzujemy krok po kroku (jak robi to Awakened PoE Trade).
+async function autoRareSearch(filters, s) {
+  const item = currentItem;
+  const base = { filters, useBase: true, ilvl: false, status: s.tradeStatus };
+  let r = await doTradeSearch(base);
+  const n = filters.filter(f => f.enabled && f.id).length;
+  const steps = [
+    { ...base, broad: true, countMin: Math.max(1, n - 1), note: `poluzowane: ${Math.max(1, n - 1)} z ${n} modów, wartości −10%` },
+    { ...base, broad: true, useBase: false, countMin: Math.max(1, n - 2), note: `poluzowane: ${Math.max(1, n - 2)} z ${n} modów, dowolna baza` },
+  ];
+  for (const st of steps) {
+    if (!r || r.total > 0 || currentItem !== item || n < 2) break;
+    r = await doTradeSearch(st, st.note);
+  }
 }
 
 // Zamykanie okienka wyceny kliknięciem gdziekolwiek poza nim (w grze, ekwipunku itd.).

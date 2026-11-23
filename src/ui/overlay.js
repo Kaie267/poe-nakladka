@@ -67,6 +67,7 @@ function spark(data, change) {
 
 function unitPrice() {
   const p = S.ninja && S.ninja.price;
+  if (p && p.baseOnly && S.item && S.item.rarity === 'Rare') { const e = tradeEstimate(); if (e) return e.est; }
   if (p && p.chaos != null) return p.chaos;
   const ex = exchangeUnit(); if (ex && ex.have === 'chaos') return ex.unit;
   const e = tradeEstimate(); return e ? e.est : null;
@@ -78,6 +79,8 @@ function priceBlock() {
   const it = S.item;
   const p = S.ninja && S.ninja.price;
   let unit = p ? p.chaos : null, source = p ? p.source : '';
+  // Dla rare cena samej bazy to tylko dolna granica — oferty z trade są ważniejsze.
+  if (p && p.baseOnly && it.rarity === 'Rare') { const e0 = tradeEstimate(); if (e0) { unit = e0.est; source = 'szacunek z ofert na trade'; } }
   const ex = exchangeUnit();
   if (unit == null && ex && ex.have === 'chaos') { unit = ex.unit; source = 'wymiana na trade'; }
   if (unit == null) { const e = tradeEstimate(); if (e) { unit = e.est; source = 'szacunek z ofert na trade'; } }
@@ -101,7 +104,14 @@ function priceBlock() {
   }
   let verdict = '';
   if (total != null) verdict = total >= S.threshold ? '<span class="verdict v-sell">SPRZEDAJ</span>' : '<span class="verdict v-vendor">WENDOR</span>';
-  else if (!loading) verdict = '<span class="verdict v-unknown">BRAK CENY</span>';
+  else if (!loading) {
+    const t = S.trade;
+    const why = t && t.error ? 'trade nie odpowiada — spróbuj za chwilę'
+      : t && t.result && !t.result.total ? 'brak ofert nawet po poluzowaniu — odznacz mody niżej'
+      : ['Rare', 'Magic', 'Normal'].includes(it.rarity) && !t ? 'kliknij „Szukaj” w sekcji Trade'
+      : 'poe.ninja nie wycenia tego typu przedmiotów';
+    verdict = `<span class="verdict v-unknown">BRAK CENY</span><div class="status">${esc(why)}</div>`;
+  }
 
   const trend = p && p.change != null ? `<div class="trend">${spark(p.spark, p.change)}<span class="num ${p.change >= 0 ? 'up' : 'down'}">${p.change >= 0 ? '+' : ''}${Math.round(p.change)}%</span><span class="lbl">7 dni</span></div>` : '';
   const meta = [];
@@ -269,6 +279,7 @@ function tradeBlock() {
   }).join('');
   return `<section>${est}
     <h3>Trade <span><span class="num">${r.listings.length}/${r.total}</span> · <a data-url="${esc(r.url)}">pathofexile.com/trade</a> · <a id="go" title="Szukaj ponownie">↻</a></span></h3>
+    ${r.note ? `<div class="status">${esc(r.note)}</div>` : ''}
     ${controls()}
     ${r.listings.length ? `<div class="tbl"><table><tr class="th"><th></th><th class="p">Cena</th>${showLvl ? '<th class="c">Poz.</th><th class="c">Q</th>' : ''}<th>Konto</th><th class="c">Wystawione</th></tr>${rows}</table></div>`
       : '<div class="status">Brak ofert. Odznacz część modów, przełącz na „Szeroko” albo zmień filtry wyżej.</div>'}</section>`;

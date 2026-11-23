@@ -234,6 +234,8 @@ class Trade {
         if (f.min !== null && f.min !== undefined && f.min !== '') flt.value = { min: opts.broad ? Math.floor(Number(f.min) * 0.9) : Number(f.min) };
         q.stats[0].filters.push(flt);
       }
+      // "Co najmniej N z tych modów" zamiast "wszystkie naraz" — inaczej rare prawie nigdy nie mają ofert.
+      if (opts.countMin && q.stats[0].filters.length > opts.countMin) q.stats[0] = { type: 'count', value: { min: opts.countMin }, filters: q.stats[0].filters };
       if (opts.ilvl && item.ilvl) misc.ilvl = { min: item.ilvl };
       if (item.corrupted) misc.corrupted = { option: 'true' };
     }
