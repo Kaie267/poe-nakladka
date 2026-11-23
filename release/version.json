@@ -1,1 +1,1 @@
-{ "version": "3.4.0", "size": 607026, "minBase": "2.0.0", "notes": "Loot filtr pod twój build z PoB: twoje unikaty (wiązka i dźwięk), rare na bazach, które nosisz, rare pancerze pod twój typ obrony, opcjonalnie gemy. Własny dźwięk dla reguł buildu." }
+{"version":"3.4.1","size":615577,"minBase":"2.0.0","notes":"Okienko wyceny znika po kliknięciu gdziekolwiek poza nim (w grze, ekwipunku)"}

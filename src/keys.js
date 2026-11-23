@@ -19,6 +19,8 @@ public static class K {
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string c, string t);
+  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vk);
+  public static string Btn(){ return (((GetAsyncKeyState(1) & 0x8000) != 0) ? "1" : "0") + (((GetAsyncKeyState(2) & 0x8000) != 0) ? "1" : "0"); }
   public static void Down(byte vk){ keybd_event(vk,0,0,UIntPtr.Zero); }
   public static void Up(byte vk){ keybd_event(vk,0,2,UIntPtr.Zero); }
   public static void Tap(byte vk){ Down(vk); Up(vk); }
@@ -55,6 +57,7 @@ while ($true) {
       }
     }
     'focus' { if (-not [K]::FocusPoe()) { $out = 'nopoe' } }
+    'btn' { $out = [K]::Btn() }
     'procpath' {
       $p = Get-Process | Where-Object { $_.ProcessName -like 'PathOfExile*' } | Select-Object -First 1
       if ($p) { $out = $p.Path } else { $out = '' }
@@ -104,6 +107,7 @@ class Keys {
   copyItem(advanced) { return this.send('copy', advanced ? '1' : '0'); }
   chat() { return this.send('chat'); }
   focusGame() { return this.send('focus'); }
+  async mouseDown() { const r = await this.send('btn', '', 500); return r.includes('1'); }
   procPath() { return this.send('procpath', '', 8000); }
   stop() { try { this.proc && this.proc.kill(); } catch { /* */ } }
 }

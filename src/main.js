@@ -177,6 +177,7 @@ async function priceCheck(advanced, compact) {
   placeOverlay();
   W.overlay.showInactive();
   W.overlay.focus();
+  watchClickOutside();
   if (!item) { send('overlay', 'item', { error: 'Nie rozpoznano przedmiotu. Najedź kursorem na przedmiot w grze i wciśnij skrót jeszcze raz.' }); return; }
   currentItem = item;
   currentExchange = null;
@@ -238,6 +239,25 @@ async function doTradeSearch(opts) {
     const r = await trade.search(currentItem, opts, rates);
     send('overlay', 'trade', { result: r, divine: rates.divine || null, icons: await ninja.getIcons() });
   } catch (e) { send('overlay', 'trade', { error: e.message }); }
+}
+
+// Zamykanie okienka wyceny kliknięciem gdziekolwiek poza nim (w grze, ekwipunku itd.).
+// Gra zwykle nie oddaje fokusu, więc sprawdzamy stan przycisków myszy przez pomocnika Windows.
+let clickWatch = null;
+function watchClickOutside() {
+  clearTimeout(clickWatch);
+  const started = Date.now();
+  const tick = async () => {
+    if (!W.overlay || W.overlay.isDestroyed() || !W.overlay.isVisible()) return;
+    if (Date.now() - started > 250 && await keys.mouseDown()) {
+      const p = screen.getCursorScreenPoint();
+      const b = W.overlay.getBounds();
+      const inside = p.x >= b.x && p.x <= b.x + b.width && p.y >= b.y && p.y <= b.y + b.height;
+      if (!inside) { W.overlay.hide(); return; }
+    }
+    clickWatch = setTimeout(tick, 60);
+  };
+  clickWatch = setTimeout(tick, 60);
 }
 
 // ---------- tryb liczenia ----------
