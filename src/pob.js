@@ -38,7 +38,19 @@ function decodePob(code) {
   // Odporności postaci (z wyliczeń PoB) i noszone przedmioty — do porównań przy wycenie.
   const res = { fire: stat('FireResist'), cold: stat('ColdResist'), lightning: stat('LightningResist'), chaos: stat('ChaosResist') };
   const items = parsePobItems(xml);
-  return { className: cls, ascendancy: asc, gems: [...gems], mainGem, profile: { type, defense, element: el }, res, items };
+  // Dane do loot filtra pod build: bazy noszonych rare, unikaty (po bazie), gemy i typ obrony.
+  const armour = stat('Armour') || 0, evasion = stat('Evasion') || 0;
+  let defBase = 'hybrid';
+  if (es > life * 0.5 && es > armour / 5 && es > evasion / 5) defBase = 'es';
+  else if (armour > evasion * 1.3) defBase = 'armour';
+  else if (evasion > armour * 1.3) defBase = 'evasion';
+  const filter = {
+    rareBases: [...new Set(Object.values(items).filter(i => i.rarity === 'Rare' && i.base).map(i => i.base))],
+    uniques: [...new Set(Object.values(items).filter(i => i.rarity === 'Unique').map(i => ({ name: i.name, base: i.base })).filter(u => u.base).map(u => JSON.stringify(u)))].map(x => JSON.parse(x)),
+    gems: [...gems].filter(g => !/ Support$/.test(g) || true),
+    defBase,
+  };
+  return { className: cls, ascendancy: asc, gems: [...gems], mainGem, profile: { type, defense, element: el }, res, items, filter };
 }
 
 const unxml = t => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#10;/g, '\n').replace(/&amp;/g, '&');

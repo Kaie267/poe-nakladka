@@ -114,3 +114,13 @@ const guide = require('../src/data/guide.json');
   assert.ok(adviseMap('Item Class: Maps\nRarity: Normal\nDunes Map\n--------\nMap Tier: 16', {}).steps[0].t.includes('Alchemy'));
   console.log('map advice: OK');
 })();
+
+(async () => {
+  const assert = require('assert');
+  const { buildRules } = require('../src/lootfilter');
+  const fake = { load: async (k, t) => (k === 'currency' && t === 'Currency' ? [{ name: 'Divine Orb', chaos: 190 }] : []) };
+  const r = await buildRules(fake, { divine: 190, build: { rareBases: ['Vaal Regalia'], uniques: [{ name: 'X', base: 'Silk Robe' }], gems: [], defBase: 'es' }, buildOpts: { enabled: true, sound: 3 } });
+  assert.ok(r.text.includes('BaseEnergyShield > 0') && r.text.includes('"Silk Robe"') && r.text.includes('PlayAlertSound 3 300'));
+  assert.ok(r.text.indexOf('Divine Orb') < r.text.indexOf('Pod twój build'));
+  console.log('build filter: OK');
+})().catch(e => { console.error(e); process.exit(1); });

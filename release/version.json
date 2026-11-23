@@ -1,1 +1,1 @@
-{ "version": "3.3.0", "size": 600993, "minBase": "2.0.0", "notes": "Szept kupującego podświetla przedmiot na siatce stasha (jak w Awakened PoE Trade) + przycisk Pokaż w stashu. Komendy czatu (Zaproś, Handel, Dzięki…) czyszczą pole czatu przed wklejeniem i przywracają twój schowek." }
+{ "version": "3.4.0", "size": 607026, "minBase": "2.0.0", "notes": "Loot filtr pod twój build z PoB: twoje unikaty (wiązka i dźwięk), rare na bazach, które nosisz, rare pancerze pod twój typ obrony, opcjonalnie gemy. Własny dźwięk dla reguł buildu." }

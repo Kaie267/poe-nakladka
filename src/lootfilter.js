@@ -35,7 +35,28 @@ async function collect(ninja) {
   return { items, cards, uniq };
 }
 
-async function buildRules(ninja, { divine, t2 = 20, t3 = 5 }) {
+const ARMOUR_CLASSES = '"Body Armours" "Helmets" "Gloves" "Boots" "Shields"';
+const DEF_COND = { es: ['BaseEnergyShield > 0', 'BaseArmour = 0', 'BaseEvasion = 0'], armour: ['BaseArmour > 0', 'BaseEvasion = 0', 'BaseEnergyShield = 0'],
+  evasion: ['BaseEvasion > 0', 'BaseArmour = 0', 'BaseEnergyShield = 0'], hybrid: ['BaseArmour > 0', 'BaseEvasion > 0'] };
+
+// Reguły pod build z PoB: twoje unikaty, bazy rare, które nosisz, pancerze pod twój typ obrony i gemy.
+function buildBlocks(bf, o) {
+  if (!bf) return [];
+  const snd = Math.max(1, Math.min(16, Number(o.sound) || 2));
+  const out = ['# ----- Pod twój build (PoB) -----', ''];
+  const uq = (bf.uniques || []).map(u => u.base).filter(Boolean);
+  if (o.uniques !== false && uq.length) out.push(block(`Build: unikaty (${(bf.uniques || []).map(u => u.name).join(', ')})`, ['Rarity Unique', `BaseType == ${[...new Set(uq)].map(q).join(' ')}`],
+    ['SetFontSize 45', 'SetTextColor 20 20 20 255', 'SetBorderColor 0 0 0 255', 'SetBackgroundColor 80 220 230 255', `PlayAlertSound ${snd} 300`, 'PlayEffect Cyan', 'MinimapIcon 0 Cyan Star']));
+  if (o.bases !== false && (bf.rareBases || []).length) out.push(block('Build: rare na bazach, które nosisz', ['Rarity Rare', 'ItemLevel >= 75', `BaseType == ${bf.rareBases.map(q).join(' ')}`],
+    ['SetFontSize 42', 'SetTextColor 255 255 119 255', 'SetBorderColor 80 220 230 255', 'SetBackgroundColor 20 40 45 240', `PlayAlertSound ${snd} 200`, 'PlayEffect Cyan Temp', 'MinimapIcon 1 Cyan Diamond']));
+  if (o.defense !== false && DEF_COND[bf.defBase]) out.push(block(`Build: rare pancerze pod obronę (${bf.defBase})`, ['Rarity Rare', `Class == ${ARMOUR_CLASSES}`, 'ItemLevel >= 80', ...DEF_COND[bf.defBase]],
+    ['SetFontSize 38', 'SetBorderColor 80 220 230 200', 'MinimapIcon 2 Cyan Circle']));
+  if (o.gems !== false && (bf.gems || []).length) out.push(block('Build: twoje gemy', ['Class == "Skill Gems" "Support Gems"', `BaseType == ${bf.gems.map(q).join(' ')}`],
+    ['SetFontSize 40', 'SetBorderColor 80 220 230 255', `PlayAlertSound ${snd} 150`, 'MinimapIcon 2 Cyan Triangle']));
+  return out;
+}
+
+async function buildRules(ninja, { divine, t2 = 20, t3 = 5, build = null, buildOpts = {} }) {
   const t1 = divine || 150;
   const { items, cards, uniq } = await collect(ninja);
   const tier = map => {
@@ -46,7 +67,10 @@ async function buildRules(ninja, { divine, t2 = 20, t3 = 5 }) {
   const ti = tier(items), tc = tier(cards), tu = tier(uniq);
   const out = [`# ===== Nakładka PoE — reguły z cen poe.ninja (${new Date().toLocaleString('pl-PL')}) =====`,
     `# T1 >= ${Math.round(t1)}c (dźwięk, czerwona wiązka) · T2 >= ${t2}c (dźwięk, pomarańczowa) · T3 >= ${t3}c`, ''];
+  // T1 (bardzo drogie) zawsze pierwsze; reguły buildu przed T2/T3, żeby twoje rzeczy nie zginęły.
+  const buildPart = buildOpts.enabled ? buildBlocks(build, buildOpts) : [];
   for (const t of ['t1', 't2', 't3']) {
+    if (t === 't2' && buildPart.length) out.push(...buildPart);
     if (ti[t].length) out.push(block(`Waluta i fragmenty ${t.toUpperCase()}`, [`BaseType == ${ti[t].map(q).join(' ')}`], STYLES[t]));
     if (tc[t].length) out.push(block(`Karty ${t.toUpperCase()}`, ['Class == "Divination Cards"', `BaseType == ${tc[t].map(q).join(' ')}`], STYLES[t]));
     if (tu[t].length && t !== 't3') out.push(block(`Unikaty ${t.toUpperCase()} (baza z drogim unikatem)`, ['Rarity Unique', `BaseType == ${tu[t].map(q).join(' ')}`], STYLES[t]));
@@ -64,10 +88,10 @@ function listFilters(dir) {
   try { return fs.readdirSync(dir).filter(f => /\.filter$/i.test(f) && f !== 'NakladkaPoE.filter'); } catch { return []; }
 }
 
-async function generate({ ninja, documents, base, divine, t2, t3 }) {
+async function generate({ ninja, documents, base, divine, t2, t3, build, buildOpts }) {
   const dir = filterDir(documents);
   fs.mkdirSync(dir, { recursive: true });
-  const rules = await buildRules(ninja, { divine, t2, t3 });
+  const rules = await buildRules(ninja, { divine, t2, t3, build, buildOpts });
   let baseText = '';
   if (base) { try { baseText = fs.readFileSync(path.join(dir, base), 'utf8'); } catch { /* bez bazy */ } }
   if (!baseText) baseText = '# Brak bazowego filtra — reszta przedmiotów wygląda domyślnie.\nShow\n';
@@ -76,4 +100,4 @@ async function generate({ ninja, documents, base, divine, t2, t3 }) {
   return { file, counts: rules.counts, top: rules.top, at: Date.now() };
 }
 
-module.exports = { generate, listFilters, filterDir, buildRules };
+module.exports = { generate, listFilters, filterDir, buildRules, buildBlocks };

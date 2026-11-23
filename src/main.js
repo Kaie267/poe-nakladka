@@ -327,7 +327,8 @@ async function makeFilter() {
   const s = settings.get();
   ninja.setLeague(s.league);
   settings.quiet({ filterMade: true });
-  lastFilter = await LF.generate({ ninja, documents: app.getPath('documents'), base: s.filterBase, divine: await ninja.divinePrice(), t2: Number(s.filterT2) || 20, t3: Number(s.filterT3) || 5 });
+  lastFilter = await LF.generate({ ninja, documents: app.getPath('documents'), base: s.filterBase, divine: await ninja.divinePrice(), t2: Number(s.filterT2) || 20, t3: Number(s.filterT3) || 5,
+    build: s.buildFilter, buildOpts: { enabled: !!s.filterBuild, ...(s.filterBuildOpts || {}) } });
   return lastFilter;
 }
 
@@ -708,6 +709,7 @@ ipcMain.handle('pob:import', (_e, code) => {
     if (r.className) patch.guideClass = r.className;
     if (r.profile) patch.buildProfile = r.profile;
     if (r.items) patch.buildItems = r.items;
+    if (r.filter) patch.buildFilter = r.filter;
     if (r.res && r.res.fire != null) patch.buildRes = r.res;
     settings.quiet(patch);
     send('guide', 'settings', settings.get());

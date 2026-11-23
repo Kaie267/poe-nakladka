@@ -4,7 +4,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const fmt = n => n >= 100 ? Math.round(n).toLocaleString('pl-PL') : n >= 1 ? (+n).toFixed(1) : String(+(+n).toFixed(3));
 const t = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const FIELDS = ['watchAlertPct', 'listUndercut', 'uiScale', 'uiOpacity', 'vendorThreshold', 'tradeStatus', 'modMinPercent', 'poesessid', 'clientLog', 'thanksMessage', 'busyMessage', 'account', 'guideClass'];
-const CHECKS = ['stashHighlight', 'guideAuto', 'priceCompact', 'filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
+const CHECKS = ['filterBuild', 'stashHighlight', 'guideAuto', 'priceCompact', 'filterAuto', 'autoCopyNote', 'autoTradeRares', 'restoreClipboard', 'hudVisible', 'buyerSound', 'guideLeagueStart', 'explainMods', 'labAuto'];
 
 function show(sec) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === sec));
@@ -444,7 +444,18 @@ $('rxMapCopy').onclick = () => copyBtn($('rxMapCopy'), $('rxMapOut').textContent
 $('rxOwnCopy').onclick = () => copyBtn($('rxOwnCopy'), $('rxOwnOut').textContent);
 
 // --- loot filtr ---
+function fbSummary(bf) {
+  if (!bf) return 'Brak wczytanego buildu.';
+  const D = { es: 'tarcza energii (ES)', armour: 'pancerz', evasion: 'unik', hybrid: 'hybryda' };
+  return `Unikaty: ${(bf.uniques || []).map(u => u.name).join(', ') || '—'} · bazy rare: ${(bf.rareBases || []).length} · obrona: ${D[bf.defBase] || '—'} · gemy: ${(bf.gems || []).length}`;
+}
 async function fInit(s) {
+  $('fbS').innerHTML = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">dźwięk ${i + 1}</option>`).join('');
+  const o = s.filterBuildOpts || {};
+  $('fbU').checked = o.uniques !== false; $('fbB').checked = o.bases !== false; $('fbD').checked = o.defense !== false; $('fbG').checked = !!o.gems;
+  $('fbS').value = String(o.sound || 2);
+  $('filterBuild').checked = !!s.filterBuild;
+  $('fbInfo').textContent = fbSummary(s.buildFilter);
   const r = await api.filterList();
   $('fBase').innerHTML = '<option value="">(bez bazowego filtra)</option>' + r.files.map(f => `<option ${f === s.filterBase ? 'selected' : ''}>${esc(f)}</option>`).join('');
   $('fT2').value = s.filterT2 ?? 20; $('fT3').value = s.filterT3 ?? 5;
@@ -455,8 +466,18 @@ function fShow(r) {
   if (r.error) { $('fStatus').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
   $('fStatus').innerHTML = `Gotowe (${new Date(r.at).toLocaleTimeString('pl-PL')}): T1 <b>${r.counts.t1}</b> · T2 <b>${r.counts.t2}</b> · T3 <b>${r.counts.t3}</b> przedmiotów. Najdroższe: ${r.top.slice(0, 5).map(([n, c]) => `${esc(n)} (${Math.round(c)} c)`).join(', ')}`;
 }
+$('fbLoad').onclick = async () => {
+  if ($('fbPob').value.trim()) {
+    const r = await api.pobImport($('fbPob').value);
+    if (r.error) { $('fbInfo').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
+  }
+  const s = await api.getSettings();
+  $('fbInfo').textContent = fbSummary(s.buildFilter);
+  if (s.buildFilter) { $('filterBuild').checked = true; }
+};
 $('fMake').onclick = async () => {
-  await api.setSettings({ filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked });
+  await api.setSettings({ filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked,
+    filterBuild: $('filterBuild').checked, filterBuildOpts: { uniques: $('fbU').checked, bases: $('fbB').checked, defense: $('fbD').checked, gems: $('fbG').checked, sound: Number($('fbS').value) || 2 } });
   $('fStatus').textContent = 'Pobieram ceny i składam filtr…';
   fShow(await api.filterMake());
 };

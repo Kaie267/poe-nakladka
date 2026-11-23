@@ -47,7 +47,10 @@ const DEFAULTS = {
   filterBase: '',            // bazowy loot filtr gracza (plik w Moje dokumenty/My Games/Path of Exile)
   filterT2: 20,
   filterT3: 5,
-  filterAuto: true,          // odświeżaj reguły co godzinę        // po wycenie notka ~price od razu w schowku
+  filterAuto: true,
+  filterBuild: false,        // reguły pod build z PoB w loot filtrze
+  filterBuildOpts: { uniques: true, bases: true, defense: true, gems: false, sound: 2 },
+  buildFilter: null,          // odświeżaj reguły co godzinę        // po wycenie notka ~price od razu w schowku
   watchAlertPct: 20,         // alert, gdy obserwowany przedmiot zmieni cenę o tyle %
   liveSearches: [],          // [{id, name, url, on}]
   labAuto: true,
