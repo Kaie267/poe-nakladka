@@ -17,6 +17,5 @@ api.on('hud', d => {
   const k = d.counting;
   if (k && k.on) parts.unshift(`<span class="cnt" style="color:#8fbf6a">● Liczenie${k.flash ? ' WŁĄCZONE' : ''}: <b>${k.n}</b> szt. · <b>${c(k.total)} c</b></span>`);
   else if (k && k.flash) parts.unshift(`<span class="cnt" style="color:#d9694f">■ Liczenie WYŁĄCZONE${k.n ? ` — policzono <b>${k.n}</b> szt. · <b>${c(k.total)} c</b>` : ''}</span>`);
-  else if (k && k.n) parts.push(`<span class="cnt">Policzono: <b>${k.n}</b> szt. · <b>${c(k.total)} c</b></span>`);
   h.innerHTML = parts.join('<span style="color:var(--faint)">·</span>');
 });
