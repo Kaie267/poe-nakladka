@@ -288,15 +288,23 @@ function addCount(item, chaos) {
   if (sess) sess.addLoot(chaos);
   pushHud();
 }
+let countingAt = 0;
 function toggleCounting() {
+  // Przytrzymany skrót powtarza się w Windows — bez tej blokady liczenie włączało się i od razu wyłączało.
+  if (Date.now() - countingAt < 700) return counting.on;
+  countingAt = Date.now();
   counting = counting.on ? { on: false, items: counting.items, total: counting.total } : { on: true, items: [], total: 0 };
+  counting.flashAt = Date.now();
+  if (W.hud && !W.hud.isDestroyed()) { if (counting.on) W.hud.showInactive(); else if (!settings.get().hudVisible) setTimeout(() => { if (!counting.on) W.hud.hide(); }, 3500); }
   pushHud();
+  setTimeout(pushHud, 3100);
+  return counting.on;
 }
 
 function pushHud() {
   const d = { maps: sess ? sess.stats() : null, counting: { on: counting.on, n: counting.items.length, total: counting.total } };
   send('settings', 'hud', d);
-  send('hud', 'hud', { maps: sess ? sess.stats() : null, counting: { on: counting.on, n: counting.items.length, total: counting.total } });
+  send('hud', 'hud', { maps: sess ? sess.stats() : null, counting: { on: counting.on, n: counting.items.length, total: counting.total, flash: Date.now() - (counting.flashAt || 0) < 3000 } });
 }
 
 // ---------- czat ----------

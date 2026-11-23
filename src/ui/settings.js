@@ -554,3 +554,7 @@ function guideShow(id) {
 guideShow('craft');
 
 load().then(() => show((location.hash || '#ogolne').slice(1)));
+
+// --- tryb liczenia (przycisk w zakładce Mapy) ---
+api.on('hud', d => { const b = document.getElementById('cntToggle'); if (b && d.counting) b.textContent = d.counting.on ? 'Wyłącz liczenie' : 'Włącz liczenie'; });
+document.getElementById('cntToggle').onclick = async () => { const on = await api.countingToggle(); document.getElementById('cntToggle').textContent = on ? 'Wyłącz liczenie' : 'Włącz liczenie'; };

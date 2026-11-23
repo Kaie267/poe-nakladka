@@ -14,8 +14,9 @@ api.on('hud', d => {
     if (m.loot) parts.push(`zysk <b>${c(m.loot)} c</b>${m.lootPerHour ? ` · <b>${c(m.lootPerHour)}</b> c/h` : ''}`);
     if (m.current) parts.push(`${m.current.inMap ? '<span class="dot"></span>' : ''}${esc(m.current.area)} <b>${t(m.current.ms)}</b>`);
   }
-  if (d.counting && (d.counting.on || d.counting.n)) {
-    parts.push(`<span class="cnt">${d.counting.on ? 'Liczenie' : 'Policzono'}: <b>${d.counting.n}</b> szt. · <b>${c(d.counting.total)} c</b></span>`);
-  }
+  const k = d.counting;
+  if (k && k.on) parts.unshift(`<span class="cnt" style="color:#8fbf6a">● Liczenie${k.flash ? ' WŁĄCZONE' : ''}: <b>${k.n}</b> szt. · <b>${c(k.total)} c</b></span>`);
+  else if (k && k.flash) parts.unshift(`<span class="cnt" style="color:#d9694f">■ Liczenie WYŁĄCZONE${k.n ? ` — policzono <b>${k.n}</b> szt. · <b>${c(k.total)} c</b>` : ''}</span>`);
+  else if (k && k.n) parts.push(`<span class="cnt">Policzono: <b>${k.n}</b> szt. · <b>${c(k.total)} c</b></span>`);
   h.innerHTML = parts.join('<span style="color:var(--faint)">·</span>');
 });

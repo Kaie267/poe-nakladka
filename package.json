@@ -1,7 +1,7 @@
 {
   "name": "poe-nakladka",
   "productName": "Nakladka PoE",
-  "version": "3.5.8",
+  "version": "3.5.9",
   "description": "Darmowa nakladka do Path of Exile 1: wycena, handel, mody map",
   "main": "boot.js",
   "scripts": {
