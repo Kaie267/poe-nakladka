@@ -179,6 +179,7 @@ async function priceCheck(advanced, compact) {
   W.overlay.focus();
   watchClickOutside();
   if (!item) { send('overlay', 'item', { error: 'Nie rozpoznano przedmiotu. Najedź kursorem na przedmiot w grze i wciśnij skrót jeszcze raz.' }); return; }
+  if (item.rarity === 'Magic' && !item.isMap) item.baseType = await trade.resolveBase(item);
   currentItem = item;
   currentExchange = null;
   const s = settings.get();

@@ -157,6 +157,24 @@ class Trade {
     return (j.result || []).filter(l => !l.realm || l.realm === 'pc').map(l => l.id);
   }
 
+  // Lista baz z trade — potrzebna, bo magiczny przedmiot ma w nazwie prefiks i sufiks ("Frozen Iron Ring of the Fox").
+  async baseTypes() {
+    if (this.bases) return this.bases;
+    let json = this.loadCache('items', 24 * 3600 * 1000);
+    if (!json) { json = await this.call('data', 'GET', '/api/trade/data/items'); this.saveCache('items', json); }
+    const set = new Set();
+    for (const g of json.result || []) for (const e of g.entries || []) if (e.type && !e.name) set.add(e.type);
+    this.bases = [...set].sort((a, b) => b.length - a.length);
+    return this.bases;
+  }
+  async resolveBase(item) {
+    const name = item.name || item.baseType || '';
+    try {
+      const bases = await this.baseTypes();
+      return bases.find(b => name === b || name.startsWith(b + ' ') || name.endsWith(' ' + b) || name.includes(' ' + b + ' ')) || item.baseType;
+    } catch { return item.baseType; }
+  }
+
   async statIndex() {
     if (this.stats) return this.stats;
     let json = this.loadCache('stats', 24 * 3600 * 1000);

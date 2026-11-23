@@ -106,7 +106,7 @@ function priceBlock() {
   if (total != null) verdict = total >= S.threshold ? '<span class="verdict v-sell">SPRZEDAJ</span>' : '<span class="verdict v-vendor">WENDOR</span>';
   else if (!loading) {
     const t = S.trade;
-    const why = t && t.error ? 'trade nie odpowiada — spróbuj za chwilę'
+    const why = t && t.error ? (/\b(429|5\d\d)\b|limit|timeout|ECONN|ENOTFOUND/i.test(t.error) ? 'trade nie odpowiada — spróbuj za chwilę' : 'trade odrzucił zapytanie — szczegóły w sekcji Trade niżej')
       : t && t.result && !t.result.total ? 'brak ofert nawet po poluzowaniu — odznacz mody niżej'
       : ['Rare', 'Magic', 'Normal'].includes(it.rarity) && !t ? 'kliknij „Szukaj” w sekcji Trade'
       : 'poe.ninja nie wycenia tego typu przedmiotów';
