@@ -459,6 +459,7 @@ async function fInit(s) {
   const r = await api.filterList();
   $('fBase').innerHTML = '<option value="">(bez bazowego filtra)</option>' + r.files.map(f => `<option ${f === s.filterBase ? 'selected' : ''}>${esc(f)}</option>`).join('');
   $('fT2').value = s.filterT2 ?? 20; $('fT3').value = s.filterT3 ?? 5;
+  $('fRares').value = s.filterRares || 'base';
   $('fName').value = s.filterName || 'NakladkaPoE'; $('fNameHow').textContent = $('fName').value;
   const ours = r.ours || [];
   $('fOurs').innerHTML = ours.map(n => `<option value="${esc(n)}">`).join('');
@@ -488,7 +489,7 @@ $('fNameBuild').onclick = async () => {
 };
 $('fName').oninput = () => { $('fNameHow').textContent = $('fName').value.trim() || 'NakladkaPoE'; };
 $('fMake').onclick = async () => {
-  await api.setSettings({ filterName: $('fName').value.trim() || 'NakladkaPoE', filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked,
+  await api.setSettings({ filterRares: $('fRares').value, filterName: $('fName').value.trim() || 'NakladkaPoE', filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked,
     filterBuild: $('filterBuild').checked, filterBuildOpts: { uniques: $('fbU').checked, bases: $('fbB').checked, defense: $('fbD').checked, gems: $('fbG').checked, sound: Number($('fbS').value) || 2 } });
   $('fStatus').textContent = 'Pobieram ceny i składam filtr…';
   fShow(await api.filterMake());

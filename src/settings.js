@@ -44,6 +44,7 @@ const DEFAULTS = {
   listUndercut: 5,
   autoCopyNote: true,
   priceCompact: false,       // zawsze kompaktowe okienko wyceny
+  filterRares: 'base',       // base = jak w filtrze gracza; all / ilvl75 / ilvl82 / jewelry = zawsze pokazuj
   filterName: 'NakladkaPoE',  // nazwa pliku filtra, który tworzy nakładka
   filterBase: '',            // bazowy loot filtr gracza (plik w Moje dokumenty/My Games/Path of Exile)
   filterT2: 20,

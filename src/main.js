@@ -368,7 +368,7 @@ async function makeFilter() {
   ninja.setLeague(s.league);
   settings.quiet({ filterMade: true });
   lastFilter = await LF.generate({ ninja, documents: app.getPath('documents'), base: s.filterBase, divine: await ninja.divinePrice(), t2: Number(s.filterT2) || 20, t3: Number(s.filterT3) || 5,
-    build: s.buildFilter, buildOpts: { enabled: !!s.filterBuild, ...(s.filterBuildOpts || {}) }, name: s.filterName || 'NakladkaPoE' });
+    build: s.buildFilter, buildOpts: { enabled: !!s.filterBuild, ...(s.filterBuildOpts || {}) }, name: s.filterName || 'NakladkaPoE', rares: s.filterRares || 'base' });
   return lastFilter;
 }
 

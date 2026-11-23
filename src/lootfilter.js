@@ -56,7 +56,21 @@ function buildBlocks(bf, o) {
   return out;
 }
 
-async function buildRules(ninja, { divine, t2 = 20, t3 = 5, build = null, buildOpts = {} }) {
+// Rare, których bazowy filtr (np. strict FilterBlade) może chować — ten blok stoi przed nim, więc wygrywa.
+const RARE_MODES = {
+  all: { title: 'wszystkie rare', cond: [] },
+  ilvl75: { title: 'rare od item level 75', cond: ['ItemLevel >= 75'] },
+  ilvl82: { title: 'rare od item level 82', cond: ['ItemLevel >= 82'] },
+  jewelry: { title: 'rare biżuteria i jewele', cond: ['Class == "Rings" "Amulets" "Belts" "Jewels" "Abyss Jewels"'] },
+};
+function rareBlock(mode) {
+  const m = RARE_MODES[mode];
+  if (!m) return [];
+  return [block(`Zawsze pokazuj: ${m.title}`, ['Rarity Rare', ...m.cond],
+    ['SetFontSize 36', 'SetTextColor 255 255 119 255', 'SetBorderColor 255 255 119 160', 'SetBackgroundColor 0 0 0 200'])];
+}
+
+async function buildRules(ninja, { divine, t2 = 20, t3 = 5, build = null, buildOpts = {}, rares = 'base' }) {
   const t1 = divine || 150;
   const { items, cards, uniq } = await collect(ninja);
   const tier = map => {
@@ -75,6 +89,7 @@ async function buildRules(ninja, { divine, t2 = 20, t3 = 5, build = null, buildO
     if (tc[t].length) out.push(block(`Karty ${t.toUpperCase()}`, ['Class == "Divination Cards"', `BaseType == ${tc[t].map(q).join(' ')}`], STYLES[t]));
     if (tu[t].length && t !== 't3') out.push(block(`Unikaty ${t.toUpperCase()} (baza z drogim unikatem)`, ['Rarity Unique', `BaseType == ${tu[t].map(q).join(' ')}`], STYLES[t]));
   }
+  out.push(...rareBlock(rares));
   out.push('# ===== koniec reguł nakładki — dalej twój filtr =====', '');
   const counts = { t1: ti.t1.length + tc.t1.length + tu.t1.length, t2: ti.t2.length + tc.t2.length + tu.t2.length, t3: ti.t3.length + tc.t3.length };
   return { text: out.join('\n'), counts, top: [...items, ...cards].sort((a, b) => b[1] - a[1]).slice(0, 8) };
@@ -100,10 +115,10 @@ function safeName(n) {
   return s || 'NakladkaPoE';
 }
 
-async function generate({ ninja, documents, base, divine, t2, t3, build, buildOpts, name }) {
+async function generate({ ninja, documents, base, divine, t2, t3, build, buildOpts, name, rares }) {
   const dir = filterDir(documents);
   fs.mkdirSync(dir, { recursive: true });
-  const rules = await buildRules(ninja, { divine, t2, t3, build, buildOpts });
+  const rules = await buildRules(ninja, { divine, t2, t3, build, buildOpts, rares });
   let baseText = '';
   if (base) { try { baseText = fs.readFileSync(path.join(dir, base), 'utf8'); } catch { /* bez bazy */ } }
   if (!baseText) baseText = '# Brak bazowego filtra — reszta przedmiotów wygląda domyślnie.\nShow\n';
