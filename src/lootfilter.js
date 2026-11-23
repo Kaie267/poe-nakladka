@@ -84,20 +84,32 @@ function filterDir(documents) {
   return path.join(documents, 'My Games', 'Path of Exile');
 }
 
+// Czy plik to filtr zrobiony przez nakładkę (żeby nie proponować go jako bazowego).
+function isOurs(dir, f) {
+  if (f === 'NakladkaPoE.filter') return true;
+  try { const fd = fs.openSync(path.join(dir, f), 'r'); const b = Buffer.alloc(120); fs.readSync(fd, b, 0, 120, 0); fs.closeSync(fd); return b.toString('utf8').startsWith('# ===== Nakładka PoE'); } catch { return false; }
+}
 function listFilters(dir) {
-  try { return fs.readdirSync(dir).filter(f => /\.filter$/i.test(f) && f !== 'NakladkaPoE.filter'); } catch { return []; }
+  try { return fs.readdirSync(dir).filter(f => /\.filter$/i.test(f) && !isOurs(dir, f)); } catch { return []; }
+}
+function listOurs(dir) {
+  try { return fs.readdirSync(dir).filter(f => /\.filter$/i.test(f) && isOurs(dir, f)).map(f => f.replace(/\.filter$/i, '')); } catch { return []; }
+}
+function safeName(n) {
+  const s = String(n || '').replace(/\.filter$/i, '').replace(/[^\p{L}\p{N} _\-]/gu, '').trim().slice(0, 60);
+  return s || 'NakladkaPoE';
 }
 
-async function generate({ ninja, documents, base, divine, t2, t3, build, buildOpts }) {
+async function generate({ ninja, documents, base, divine, t2, t3, build, buildOpts, name }) {
   const dir = filterDir(documents);
   fs.mkdirSync(dir, { recursive: true });
   const rules = await buildRules(ninja, { divine, t2, t3, build, buildOpts });
   let baseText = '';
   if (base) { try { baseText = fs.readFileSync(path.join(dir, base), 'utf8'); } catch { /* bez bazy */ } }
   if (!baseText) baseText = '# Brak bazowego filtra — reszta przedmiotów wygląda domyślnie.\nShow\n';
-  const file = path.join(dir, 'NakladkaPoE.filter');
+  const file = path.join(dir, safeName(name) + '.filter');
   fs.writeFileSync(file, rules.text + '\n' + baseText, 'utf8');
-  return { file, counts: rules.counts, top: rules.top, at: Date.now() };
+  return { file, name: safeName(name), counts: rules.counts, top: rules.top, at: Date.now() };
 }
 
-module.exports = { generate, listFilters, filterDir, buildRules, buildBlocks };
+module.exports = { generate, listFilters, listOurs, safeName, filterDir, buildRules, buildBlocks };

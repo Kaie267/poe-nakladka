@@ -44,6 +44,7 @@ const DEFAULTS = {
   listUndercut: 5,
   autoCopyNote: true,
   priceCompact: false,       // zawsze kompaktowe okienko wyceny
+  filterName: 'NakladkaPoE',  // nazwa pliku filtra, który tworzy nakładka
   filterBase: '',            // bazowy loot filtr gracza (plik w Moje dokumenty/My Games/Path of Exile)
   filterT2: 20,
   filterT3: 5,

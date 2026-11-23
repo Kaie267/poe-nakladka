@@ -1,1 +1,1 @@
-{"version":"3.5.0","size":619114,"minBase":"2.0.0","notes":"Lepsza wycena: rare same luzują wyszukiwanie, gdy brak ofert; ceny baz z poe.ninja; więcej typów przedmiotów; powód przy „brak ceny”"}
+{"version":"3.5.1","size":621914,"minBase":"2.0.0","notes":"Loot filtr: własna nazwa nowego filtra (np. pod build z PoB), podpowiedź nazwy od klasy, lista twoich filtrów"}

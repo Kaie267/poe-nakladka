@@ -368,7 +368,7 @@ async function makeFilter() {
   ninja.setLeague(s.league);
   settings.quiet({ filterMade: true });
   lastFilter = await LF.generate({ ninja, documents: app.getPath('documents'), base: s.filterBase, divine: await ninja.divinePrice(), t2: Number(s.filterT2) || 20, t3: Number(s.filterT3) || 5,
-    build: s.buildFilter, buildOpts: { enabled: !!s.filterBuild, ...(s.filterBuildOpts || {}) } });
+    build: s.buildFilter, buildOpts: { enabled: !!s.filterBuild, ...(s.filterBuildOpts || {}) }, name: s.filterName || 'NakladkaPoE' });
   return lastFilter;
 }
 
@@ -745,7 +745,7 @@ ipcMain.handle('guide:source', (_e, src) => {
 ipcMain.handle('pob:import', (_e, code) => {
   try {
     const r = decodePob(code);
-    const patch = { buildGems: r.gems, buildName: [r.ascendancy || r.className, `${r.gems.length} gemów`].filter(Boolean).join(' · ') };
+    const patch = { buildSuggestName: LF.safeName('NakladkaPoE ' + (r.ascendancy || r.className || 'build')), buildGems: r.gems, buildName: [r.ascendancy || r.className, `${r.gems.length} gemów`].filter(Boolean).join(' · ') };
     if (r.className) patch.guideClass = r.className;
     if (r.profile) patch.buildProfile = r.profile;
     if (r.items) patch.buildItems = r.items;
@@ -827,7 +827,7 @@ ipcMain.handle('backup:import', async () => {
   if (r.canceled) return false;
   try { const d = JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8')); settings.set(d); registerHotkeys(); return true; } catch (e) { return { error: e.message }; }
 });
-ipcMain.handle('filter:list', () => ({ dir: LF.filterDir(app.getPath('documents')), files: LF.listFilters(LF.filterDir(app.getPath('documents'))), last: lastFilter }));
+ipcMain.handle('filter:list', () => ({ dir: LF.filterDir(app.getPath('documents')), files: LF.listFilters(LF.filterDir(app.getPath('documents'))), ours: LF.listOurs(LF.filterDir(app.getPath('documents'))), last: lastFilter }));
 ipcMain.handle('filter:make', async () => { try { return await makeFilter(); } catch (e) { logErr('filtr', e); return { error: e.message }; } });
 ipcMain.handle('filter:folder', () => shell.openPath(LF.filterDir(app.getPath('documents'))));
 ipcMain.handle('map:advise', async (_e, text) => {

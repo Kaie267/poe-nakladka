@@ -459,12 +459,17 @@ async function fInit(s) {
   const r = await api.filterList();
   $('fBase').innerHTML = '<option value="">(bez bazowego filtra)</option>' + r.files.map(f => `<option ${f === s.filterBase ? 'selected' : ''}>${esc(f)}</option>`).join('');
   $('fT2').value = s.filterT2 ?? 20; $('fT3').value = s.filterT3 ?? 5;
+  $('fName').value = s.filterName || 'NakladkaPoE'; $('fNameHow').textContent = $('fName').value;
+  const ours = r.ours || [];
+  $('fOurs').innerHTML = ours.map(n => `<option value="${esc(n)}">`).join('');
+  $('fOursList').textContent = ours.length ? ours.join(', ') : '— (jeszcze żadnego)';
   if (r.last) fShow(r.last);
   else if (!r.files.length) $('fStatus').textContent = 'Nie znalazłem filtrów w ' + r.dir;
 }
 function fShow(r) {
   if (r.error) { $('fStatus').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
-  $('fStatus').innerHTML = `Gotowe (${new Date(r.at).toLocaleTimeString('pl-PL')}): T1 <b>${r.counts.t1}</b> · T2 <b>${r.counts.t2}</b> · T3 <b>${r.counts.t3}</b> przedmiotów. Najdroższe: ${r.top.slice(0, 5).map(([n, c]) => `${esc(n)} (${Math.round(c)} c)`).join(', ')}`;
+  if (r.name) { $('fNameHow').textContent = r.name; $('fName').value = r.name; }
+  $('fStatus').innerHTML = `Gotowe — filtr <b>${esc(r.name || 'NakladkaPoE')}</b> (${new Date(r.at).toLocaleTimeString('pl-PL')}): T1 <b>${r.counts.t1}</b> · T2 <b>${r.counts.t2}</b> · T3 <b>${r.counts.t3}</b> przedmiotów. Najdroższe: ${r.top.slice(0, 5).map(([n, c]) => `${esc(n)} (${Math.round(c)} c)`).join(', ')}`;
 }
 $('fbLoad').onclick = async () => {
   if ($('fbPob').value.trim()) {
@@ -474,12 +479,22 @@ $('fbLoad').onclick = async () => {
   const s = await api.getSettings();
   $('fbInfo').textContent = fbSummary(s.buildFilter);
   if (s.buildFilter) { $('filterBuild').checked = true; }
+  if (s.buildSuggestName && (!$('fName').value || $('fName').value === 'NakladkaPoE')) { $('fName').value = s.buildSuggestName; $('fNameHow').textContent = s.buildSuggestName; }
 };
+$('fNameBuild').onclick = async () => {
+  const s = await api.getSettings();
+  if (!s.buildSuggestName) { $('fbInfo').textContent = 'Najpierw wczytaj build — wtedy podpowiem nazwę.'; return; }
+  $('fName').value = s.buildSuggestName; $('fNameHow').textContent = s.buildSuggestName;
+};
+$('fName').oninput = () => { $('fNameHow').textContent = $('fName').value.trim() || 'NakladkaPoE'; };
 $('fMake').onclick = async () => {
-  await api.setSettings({ filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked,
+  await api.setSettings({ filterName: $('fName').value.trim() || 'NakladkaPoE', filterBase: $('fBase').value, filterT2: Number($('fT2').value) || 20, filterT3: Number($('fT3').value) || 5, filterAuto: $('filterAuto').checked,
     filterBuild: $('filterBuild').checked, filterBuildOpts: { uniques: $('fbU').checked, bases: $('fbB').checked, defense: $('fbD').checked, gems: $('fbG').checked, sound: Number($('fbS').value) || 2 } });
   $('fStatus').textContent = 'Pobieram ceny i składam filtr…';
   fShow(await api.filterMake());
+  const rl = await api.filterList(); const ours = rl.ours || [];
+  $('fOurs').innerHTML = ours.map(n => `<option value="${esc(n)}">`).join('');
+  $('fOursList').textContent = ours.length ? ours.join(', ') : '—';
 };
 $('fFolder').onclick = () => api.filterFolder();
 $('fRefresh').onclick = async () => { const s = await api.getSettings(); const cur = $('fBase').value; await fInit({ ...s, filterBase: cur || s.filterBase }); $('fStatus').textContent = 'Lista filtrów odświeżona.'; };
