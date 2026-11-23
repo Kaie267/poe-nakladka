@@ -59,9 +59,12 @@ const unxml = t => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;
 function parsePobItem(text) {
   const lines = unxml(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const out = { rarity: null, name: null, base: null, mods: [] };
+  // Nowsze PoB mogą mieć przed "Rarity:" inne linie (np. "Item Class:") — szukamy jej w pierwszych liniach.
   let i = 0;
-  const r = lines[i] && lines[i].match(/^Rarity: (\w+)/);
-  if (r) { out.rarity = r[1][0] + r[1].slice(1).toLowerCase(); i++; }
+  const ri = lines.slice(0, 4).findIndex(l => /^Rarity:/i.test(l));
+  if (ri >= 0) i = ri;
+  const r = lines[i] && lines[i].match(/^Rarity: (\w+)/i);
+  if (r) { out.rarity = r[1][0].toUpperCase() + r[1].slice(1).toLowerCase(); i++; }
   out.name = lines[i++] || '';
   if (out.rarity === 'Rare' || out.rarity === 'Unique') out.base = lines[i++] || '';
   else out.base = out.name;
@@ -84,17 +87,25 @@ function parsePobItem(text) {
 
 function parsePobItems(xml) {
   const byId = {};
-  for (const m of xml.matchAll(/<Item\b[^>]*\bid="(\d+)"[^>]*>([\s\S]*?)<\/Item>/g)) {
-    try { byId[m[1]] = parsePobItem(m[2].replace(/<ModRange[^>]*\/>/g, '')); } catch { /* */ }
+  const attr = (tag, n) => (tag.match(new RegExp(`\\b${n}="([^"]*)"`)) || [])[1];
+  for (const m of xml.matchAll(/<Item\b([^>]*)>([\s\S]*?)<\/Item>/g)) {
+    const id = attr(m[1], 'id');
+    if (!id) continue;
+    try { byId[id] = parsePobItem(m[2].replace(/<[^>]+\/>/g, '')); } catch { /* */ }
   }
   const activeSet = (xml.match(/<Items\b[^>]*\bactiveItemSet="(\d+)"/) || [])[1];
   const sets = [...xml.matchAll(/<ItemSet\b([^>]*)>([\s\S]*?)<\/ItemSet>/g)];
-  const set = sets.find(s => (s[1].match(/\bid="(\d+)"/) || [])[1] === activeSet) || sets[0];
+  const set = sets.find(s => attr(s[1], 'id') === activeSet) || sets[0];
   const slots = {};
-  const src = set ? set[2] : xml;
-  for (const m of src.matchAll(/<Slot\b[^>]*\bname="([^"]+)"[^>]*\bitemId="(\d+)"/g)) {
-    if (m[2] !== '0' && byId[m[2]] && !/Swap|Abyssal|Flask|Jewel/.test(m[1])) slots[m[1]] = byId[m[2]];
-  }
+  // Kolejność atrybutów w <Slot> bywa różna (PoB zapisuje je w dowolnej kolejności).
+  const read = src => { for (const m of src.matchAll(/<Slot\b([^>]*)\/?>/g)) {
+    const name = attr(m[1], 'name'), id = attr(m[1], 'itemId');
+    if (name && id && id !== '0' && byId[id] && !/Swap|Abyssal|Flask|Jewel/.test(name)) slots[name] = byId[id];
+  } };
+  if (set) read(set[2]);
+  if (!Object.keys(slots).length) read(xml);
+  // Ostatecznie: build bez przypisanych slotów — bierzemy wszystkie rare/unikaty z listy przedmiotów.
+  if (!Object.keys(slots).length) Object.entries(byId).forEach(([id, it]) => { if (it.rarity === 'Rare' || it.rarity === 'Unique') slots['item' + id] = it; });
   return slots;
 }
 

@@ -1,1 +1,1 @@
-{"version":"3.5.4","size":624374,"minBase":"2.0.0","notes":"Loot filtr: zielone rzeczy pod build od item level 68 (było 75/80), informacja ile reguł pod build trafiło do filtra"}
+{"version":"3.5.5","size":625146,"minBase":"2.0.0","notes":"Poprawka odczytu przedmiotów z PoB (unikaty i bazy rare do loot filtra)"}
